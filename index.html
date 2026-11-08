@@ -127,7 +127,14 @@ canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image
 (() => {
 'use strict';
 // ====================== ESTADO Y GUARDADO ======================
-const KEY = 'el-bailarin-maria-v1';
+const PETS=['bailarin','maria'];
+const HASH=(location.hash||'').replace('#','');
+let PET = PETS.includes(HASH)?HASH:null;
+const SELECTING = !PET;
+if(!PET){ try{ PET=localStorage.getItem('el-bailarin-last-pet'); }catch(e){} if(!PETS.includes(PET)) PET='bailarin'; }
+const IS_M = PET==='maria';
+const KEY = IS_M ? 'el-bailarin-pet-maria-v1' : 'el-bailarin-maria-v1';
+const YOU = IS_M ? 'Bailarín' : 'María';
 const RATES = {food:12.5, energy:8.3, clean:7, happy:10, fit:4.2, anemic:4.2}; // puntos por hora
 const BARS = [
   ['food','🍜','Hambre'],['energy','⚡','Energía'],['clean','🧼','Limpieza'],
@@ -156,6 +163,7 @@ function fresh(keep){
 function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.v===1) return s; }catch(e){} return null; }
 function save(){ try{ S.last = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 let S = load() || fresh();
+let CAN_SAVE = false; try{ localStorage.setItem('__t','1'); CAN_SAVE = localStorage.getItem('__t')==='1'; localStorage.removeItem('__t'); }catch(e){}
 S.trips = S.trips || {}; S.lastTrip = S.lastTrip || 0;
 try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
@@ -214,6 +222,8 @@ const add=(p,v,k)=>[p[0]+v[0]*k, p[1]+v[1]*k];
 
 const COL = {skin:'#e9ad7e', skinD:'#c98a5c', pale:'#efdcd3', paleD:'#d4bdb3', hair:'#f8d65a', hairD:'#d9a937',
   eye:'#58c8ff', pupil:'#1d4e89', mouth:'#8a2d3b', shirt:'#ffffff', shirtD:'#d8d8e8', shorts:'#2fa3c4', shortsD:'#1f7891', blush:'#ff8fa8'};
+const HAIR = IS_M?'#221a22':COL.hair, HAIRD = IS_M?'#3e2f3e':COL.hairD, EYE = IS_M?'#7a4a26':COL.eye;
+const SHIRT = IS_M?'#ff7a59':COL.shirt, SHIRTD = IS_M?'#e0583a':COL.shirtD, SHORTS = IS_M?'#2b2b38':COL.shorts;
 
 const POSES = {
   stand:{t:0, la:12,le:6, ra:12,re:6, ll:6,lk:0, rl:6,rk:0},
@@ -232,6 +242,7 @@ const POSES = {
   lie:{t:90, dy:13, la:10,le:0, ra:10,re:0, ll:4,lk:0, rl:4,rk:0, face:'closed'},
   shower:{t:0, la:150,le:40, ra:150,re:40, ll:6,lk:0, rl:6,rk:0, face:'happyclosed'},
   trip:{t:25, dy:3, la:120,le:0, ra:60,re:0, ll:-10,lk:0, rl:30,rk:0, face:'o'},
+  bikeP:{t:-20, la:-60,le:-20, ra:-70,re:10, ll:-40,lk:60, rl:-20,rk:70, face:'smile'},
 };
 const DANCE_MOVES = ['cielo','arabesque','suelo','contraccion','grito','salto','caida','giro'];
 const DANCE_WORDS = {cielo:'¡AL CIELO!', arabesque:'¡ARABESQUE!', suelo:'¡EL SUELO ME ENTIENDE!', contraccion:'¡CONTRACCIÓN!', grito:'¡GRITO INTERIOR!', salto:'¡SALTO!', caida:'¡CAÍDA DRAMÁTICA!', giro:'¡GIRO ETERNO!'};
@@ -245,65 +256,69 @@ function drawGuy(p, o){
   const up=[Math.sin(t*Math.PI/180), -Math.cos(t*Math.PI/180)], down=[-up[0],-up[1]];
   const perp=[Math.cos(t*Math.PI/180), Math.sin(t*Math.PI/180)];
   const skin = o.pale?COL.pale:COL.skin, skinD = o.pale?COL.paleD:COL.skinD;
-  const head=add(hip,up,19), sb=add(hip,up,12);
+  const L=IS_M?0.88:1; const head=add(hip,up,19*L), sb=add(hip,up,12*L);
   SCX = hip[0]; SX = o.sx!==undefined?o.sx:1;
   // pelo largo por detrás
   const swing = (p.swing||0) + (o.swing||0);
-  for(let i=0;i<=10;i++){
+  const HL=IS_M?5:10;
+  for(let i=0;i<=HL;i++){
     const c=add(add(head,down,i), perp, swing*i/10 + (o.wild?Math.sin(i*1.7)*1.2:0));
-    const wdt = 6 - (i>7?(i-7):0)*.6;
-    line(c[0]-perp[0]*wdt, c[1]-perp[1]*wdt, c[0]+perp[0]*wdt, c[1]+perp[1]*wdt, 2, i>6?COL.hairD:COL.hair);
+    const wdt = 6 - (i>HL-3?(i-(HL-3)):0)*.6;
+    line(c[0]-perp[0]*wdt, c[1]-perp[1]*wdt, c[0]+perp[0]*wdt, c[1]+perp[1]*wdt, 2, i>HL*0.65?HAIRD:HAIR);
   }
   // piernas
   const lh=add(hip,perp,-2.5), rh=add(hip,perp,2.5);
   const legs=[[lh,-t-(p.ll||0),-(p.lk||0)],[rh,-t+(p.rl||0),(p.rk||0)]];
   // nota: ángulo del mundo = -t ± ...; dv usa 0 = abajo
   for(const [h0,a1,a2] of legs){
-    const d1=dv(a1), knee=add(h0,d1,8), d2=dv(a1+a2), foot=add(knee,d2,8);
-    line(h0[0],h0[1],knee[0],knee[1],4,skin);
+    const d1=dv(a1), knee=add(h0,d1,8*L), d2=dv(a1+a2), foot=add(knee,d2,8*L);
+    line(h0[0],h0[1],knee[0],knee[1],IS_M?3:4,skin);
     line(knee[0],knee[1],foot[0],foot[1],3,skin);
-    line(h0[0],h0[1],h0[0]+d1[0]*5,h0[1]+d1[1]*5,5,COL.shorts);
+    line(h0[0],h0[1],h0[0]+d1[0]*5,h0[1]+d1[1]*5,5,SHORTS);
     R(foot[0]-1.5,foot[1]-1,3,2,skinD);
   }
   // pantalón
-  line(lh[0],lh[1],rh[0],rh[1],6,COL.shorts);
+  line(lh[0],lh[1],rh[0],rh[1],6,SHORTS);
   // torso (camiseta de tirantes)
-  const tw = o.fofo?11:8;
-  line(hip[0]+up[0]*1,hip[1]+up[1]*1, sb[0],sb[1], tw, COL.shirt);
-  if(o.fofo){ const b=add(hip,up,4); disc(b[0],b[1],4,COL.shirt); }
+  const tw = IS_M?(o.fofo?9:7):(o.fofo?11:8);
+  line(hip[0]+up[0]*1,hip[1]+up[1]*1, sb[0],sb[1], tw, SHIRT);
+  if(o.fofo){ const b=add(hip,up,4); disc(b[0],b[1],4,SHIRT); }
   // tirantes y hombros de piel
-  const ls=add(sb,perp,-5.5), rs=add(sb,perp,5.5);
-  { const c1=add(sb,down,2.5); line(c1[0]-perp[0]*4.5,c1[1]-perp[1]*4.5,c1[0]+perp[0]*4.5,c1[1]+perp[1]*4.5,5,COL.shirt);
-    const pc=add(c1,down,2.5); for(const k of [-2.5,-1.5,1.5,2.5]){ const q=add(pc,perp,k); R(q[0],q[1],1,1,COL.shirtD); } const ab=add(hip,up,4); R(ab[0],ab[1],1,1,COL.shirtD); }
+  const SW=IS_M?4:5.5; const ls=add(sb,perp,-SW), rs=add(sb,perp,SW);
+  if(!IS_M){ const c1=add(sb,down,2.5); line(c1[0]-perp[0]*4.5,c1[1]-perp[1]*4.5,c1[0]+perp[0]*4.5,c1[1]+perp[1]*4.5,5,SHIRT);
+    const pc=add(c1,down,2.5); for(const k of [-2.5,-1.5,1.5,2.5]){ const q=add(pc,perp,k); R(q[0],q[1],1,1,SHIRTD); } const ab=add(hip,up,4); R(ab[0],ab[1],1,1,SHIRTD); }
   R(ls[0]-1.5,ls[1]-1.5,3,3,skin); R(rs[0]-1.5,rs[1]-1.5,3,3,skin);
-  const neck=add(hip,up,14); line(sb[0],sb[1],neck[0],neck[1],4,skin);
+  const neck=add(hip,up,14*L); line(sb[0],sb[1],neck[0],neck[1],IS_M?3:4,skin);
   if(o.dirty){ for(const [a,b] of [[-2,4],[1,7],[2,2],[-1,9]]){ const q=add(add(hip,up,b),perp,a); R(q[0],q[1],1,1,'#8b6a43'); } }
   // brazos
   const arms=[[ls,-t-(p.la||0),-(p.le||0)],[rs,-t+(p.ra||0),(p.re||0)]];
   // corrección: dv(0) = abajo. El "abajo" del cuerpo es -t... usamos ángulo del mundo directamente
   for(const [s0,a1,a2] of arms){
-    const d1=dv(a1), el=add(s0,d1,7), d2=dv(a1+a2), hand=add(el,d2,6);
-    line(s0[0],s0[1],el[0],el[1],4,skin); line(el[0],el[1],hand[0],hand[1],3,skin);
+    const d1=dv(a1), el=add(s0,d1,7*L), d2=dv(a1+a2), hand=add(el,d2,6*L);
+    line(s0[0],s0[1],el[0],el[1],IS_M?3:4,skin); line(el[0],el[1],hand[0],hand[1],3,skin);
     R(hand[0]-1,hand[1]-1,2,2,skinD);
   }
-  o.hand = add(add(rs,dv(-t+(p.ra||0)),7), dv(-t+(p.ra||0)+(p.re||0)),6);
+  o.hand = add(add(rs,dv(-t+(p.ra||0)),7*L), dv(-t+(p.ra||0)+(p.re||0)),6*L);
+  if(IS_M && S.injuredUntil>Date.now()){ const ce=add(rs,dv(-t+(p.ra||0)),7*L); line(ce[0],ce[1],o.hand[0],o.hand[1],4,'#f4f4f4'); }
+  if(o.mic){ R(o.hand[0]-1,o.hand[1]-4,2,4,'#3b3b3b'); disc(o.hand[0],o.hand[1]-5,1,'#9a9aa8'); }
+  if(o.can){ R(o.hand[0]-1,o.hand[1]-4,3,5,'#1f5f3a'); R(o.hand[0]-1,o.hand[1]-3,3,1,'#e8c35a'); }
   // cabeza: pelo, cara, flequillo
   const hc=add(head,up,0.6);
-  disc(hc[0],hc[1],6,COL.hair);
+  disc(hc[0],hc[1],6,HAIR);
   const fc=add(head,down,0.8);
   disc(fc[0],fc[1],4,skin);
   const P=(lx,ly)=>add(add(head,perp,lx),down,ly);
   // flequillo
-  for(let i=-5;i<=3;i++){ const q=P(i, -3.6 + (i>0? (i*0.35):0)); R(q[0],q[1],1,2,COL.hair); }
-  { const q=P(-5,-1); R(q[0],q[1],1,3,COL.hairD); const q2=P(5,-1); R(q2[0],q2[1],1,3,COL.hairD); }
+  for(let i=-5;i<=3;i++){ const q=P(i, -3.6 + (i>0? (i*0.35):0)); R(q[0],q[1],1,2,HAIR); }
+  { const q=P(-5,-1); R(q[0],q[1],1,3,HAIRD); const q2=P(5,-1); R(q2[0],q2[1],1,3,HAIRD); }
   // ojos
   const face = o.face || p.face || 'smile';
   const eyesClosed = face==='closed'||face==='happyclosed'||o.sleepy===2;
   for(const ex of [-2,2]){
     const q=P(ex,0);
     if(eyesClosed) R(q[0]-0.5,q[1]+0.5,2,1,COL.pupil);
-    else if(o.sleepy===1 || o.drunk){ R(q[0]-0.5,q[1]+0.5,2,1,COL.eye); R(q[0]-0.5,q[1],2,1,skinD); }
-    else { R(q[0]-0.5,q[1],2,2,COL.eye); R(q[0]+0.5,q[1],1,1,COL.pupil); R(q[0]-0.5,q[1]-1,2,1,COL.hairD); }
+    else if(o.sleepy===1 || o.drunk){ R(q[0]-0.5,q[1]+0.5,2,1,EYE); R(q[0]-0.5,q[1],2,1,skinD); }
+    else { R(q[0]-0.5,q[1],2,2,EYE); R(q[0]+0.5,q[1],1,1,COL.pupil); R(q[0]-0.5,q[1]-1,2,1,HAIRD); }
     if(o.pale){ const b=P(ex,1.8); R(b[0]-0.5,b[1],2,1,'#a98fb5'); }
     if(o.blush){ const b=P(ex*1.6,1.6); R(b[0],b[1],1,1,COL.blush); }
   }
@@ -314,6 +329,7 @@ function drawGuy(p, o){
   else if(face==='o'){ R(m[0]-0.5,m[1],2,2,COL.mouth); }
   else if(face==='chomp'){ if(Math.floor(o.time/180)%2) R(m[0]-0.5,m[1],2,2,COL.mouth); else R(m[0]-1,m[1]+1,3,1,COL.mouth); }
   else { R(m[0]-1,m[1]+1,3,1,COL.mouth); }
+  if(IS_M && S.injuredUntil>Date.now()){ const q=P(-3,-2); R(q[0],q[1],2,1,'#f0d2a8'); }
   if(o.dirty){ // moscas
     for(let i=0;i<2;i++){ const a=o.time/300+i*3; R(head[0]+Math.cos(a)*9, head[1]-4+Math.sin(a*1.3)*5,1,1,'#222'); }
   }
@@ -370,6 +386,9 @@ function drawGift(g,time){
 }
 function heart(x,y,c){ c=c||'#ff4f7b'; R(x,y,2,1,c);R(x+3,y,2,1,c);R(x-1,y+1,7,2,c);R(x,y+3,5,1,c);R(x+1,y+4,3,1,c);R(x+2,y+5,1,1,c); }
 function drawFood(type,x,y){
+  if(type==='birra'){ rect(x-1,y-5,4,7,'#1f5f3a'); rect(x-1,y-3,4,2,'#e8c35a'); rect(x-1,y-5,4,1,'#c8c8c8'); return; }
+  if(type==='bocata'){ rect(x-4,y-2,9,4,'#e3a64a'); rect(x-4,y,9,1,'#f5e663'); return; }
+  if(type==='ensalada'){ disc(x,y,3,'#fff'); R(x-2,y-1,2,1,'#5cb85c'); R(x+1,y-1,2,1,'#e2463f'); R(x,y-2,1,1,'#7ad35c'); return; }
   if(type==='acai'){ rect(x-3,y,7,3,'#8a5a32'); rect(x-3,y-1,7,1,'#6b2d7a'); R(x-2,y-2,1,1,'#ff4f7b'); R(x+1,y-2,1,1,'#ffe066'); }
   else if(type==='batido'){ rect(x-1,y-4,4,6,'#7ad35c'); rect(x-1,y-4,4,1,'#fff'); R(x+2,y-7,1,3,'#ff6f9f'); }
   else { disc(x,y-3,2,'#ff6f9f'); R(x-1,y-4,1,1,'#fff'); R(x,y-1,1,4,'#fff'); }
@@ -393,7 +412,7 @@ function render(now){
   const look={time:now, dirty:s.clean<30, pale:s.anemic<30, fofo:s.fit<30, sleepy: s.energy<25?1:0};
 
   if(S.mode==='over'){ renderOver(now); return; }
-  if(S.mode==='wine' && !(anim && anim.type==='surf')){
+  if(S.mode==='wine' && !(anim && (anim.type==='surf'||anim.type==='bike'))){
     sceneStreet();
     const p={...POSES.sit};
     p.ra = 35+Math.sin(now/900)*15; // bebe
@@ -401,14 +420,15 @@ function render(now){
     // cartón de vino
     const hx=52+3+Math.sin(-(p.ra-35)*0)*0;
     const tw=Math.sin(now/900);
-    rect(Math.round(60+tw*2),Math.round(GROUND-30-tw*5),4,7,'#7a1f3d'); rect(Math.round(60+tw*2),Math.round(GROUND-30-tw*5),4,2,'#f2e6c9');
-    txt('VINO',62+tw*2,GROUND-36-tw*5,'#ffe9a8',5);
+    rect(Math.round(60+tw*2),Math.round(GROUND-30-tw*5),4,7,IS_M?'#1f5f3a':'#7a1f3d'); rect(Math.round(60+tw*2),Math.round(GROUND-30-tw*5),4,2,IS_M?'#e8c35a':'#f2e6c9');
+    txt(IS_M?'BIRRA':'VINO',62+tw*2,GROUND-36-tw*5,'#ffe9a8',5);
     if(Math.floor(now/1500)%2) txt('hic!',74,40,'#ffe9a8',7);
     drawFloating(now); return;
   }
 
   // ---- animaciones especiales ----
   if(anim && anim.type==='surf'){ renderSurf(now,look); drawFloating(now); return; }
+  if(anim && anim.type==='bike'){ renderBike(now,look); drawFloating(now); return; }
   if(anim && anim.type==='cuddle'){ renderCuddle(now,look); return; }
   if(anim && anim.type==='trip'){ renderTrip(now,look); return; }
   if(S.sleeping){
@@ -464,11 +484,48 @@ function renderDance(now,opts){
   const sx = (anim.spin) ? Math.cos(now/70) : 1;
   let p={...curPose};
   if(anim.spin){ p.la=90; p.ra=90; }
+  if(anim.mic) sceneParty(now);
   // foco
   ctx.fillStyle='rgba(255,240,180,.35)'; ctx.beginPath(); ctx.moveTo(40,0); ctx.lineTo(56,0); ctx.lineTo(76,GROUND+4); ctx.lineTo(20,GROUND+4); ctx.fill();
-  drawGuy(p,{...opts, x:48, y:GROUND-16, sx, swing:Math.sin(now/110)*4});
+  drawGuy(p,{...opts, x:48, y:GROUND-16, sx, mic:anim.mic, swing:Math.sin(now/110)*4});
   if(anim.word){ txt(anim.word,48,14,'#ff3b6b',8); }
   if(anim.done && now>anim.done) endAnim();
+}
+
+function sceneParty(now){
+  rect(0,0,W,96,'#1b1030');
+  const cols=['#ff4f7b','#58c8ff','#ffe066','#7be08a'];
+  for(let i=0;i<5;i++){ const c=cols[(i+Math.floor(now/300))%4]; ctx.fillStyle=c+'55'; ctx.beginPath(); ctx.moveTo(48,6); ctx.lineTo(i*24-10,96); ctx.lineTo(i*24+6,96); ctx.fill(); }
+  disc(48,6,4,'#c8c8d8'); R(47,0,1,3,'#888');
+  for(let i=0;i<10;i++){ const x=i*10+3, y=88+((i*7+Math.floor(now/200))%3); disc(x,y,3,'#0e0818'); }
+}
+function drawBike(bx,by,ang,c){
+  const rot=(x,y)=>{ const ca=Math.cos(ang), sa=Math.sin(ang); return [bx+x*ca-y*sa, by+x*sa+y*ca]; };
+  for(const wx of [-8,8]){ for(let i=0;i<16;i++){ const a=i/16*Math.PI*2; const q=rot(wx+Math.cos(a)*4, Math.sin(a)*4); R(q[0],q[1],1,1,'#222'); } }
+  const b=rot(-8,0), s=rot(-2,-7), f=rot(8,0), h=rot(5,-9), pd=rot(0,-1);
+  line(b[0],b[1],s[0],s[1],1,c); line(s[0],s[1],h[0],h[1],1,c); line(h[0],h[1],f[0],f[1],1,c); line(b[0],b[1],pd[0],pd[1],1,c); line(pd[0],pd[1],s[0],s[1],1,c); line(pd[0],pd[1],h[0],h[1],1,c);
+  const sea=rot(-3,-8); R(sea[0]-1,sea[1],3,1,'#222'); const hb=rot(6,-10); R(hb[0]-1,hb[1],3,1,'#222');
+}
+function sceneSlope(now){
+  rect(0,0,W,96,'#9fdcff'); disc(80,12,5,'#ffe066');
+  for(let i=0;i<3;i++){ const x=((i*45-now/60)%140+140)%140-20; for(let y=0;y<26;y++){ const h=Math.round(20*(y/26)); rect(Math.round(x-h),30+y,h*2+1,1,y<6?'#fff':'#8a96a8'); } }
+  for(let x=0;x<W;x++){ const gy=Math.round(58+x*0.22); rect(x,gy,1,96-gy,'#6fbf5f'); R(x,gy,1,1,'#8b6a43'); }
+  for(let i=0;i<4;i++){ const x=((i*30-now/25)%120+120)%120-10; const gy=58+x*0.22; rect(Math.round(x),Math.round(gy-8),2,8,'#6b4a2e'); disc(x+1,gy-10,4,'#3e8e41'); }
+}
+function renderBike(now,look){
+  sceneSlope(now);
+  const st=anim.state||'ride', bx=42, gy=58+bx*0.22, by=Math.round(gy-4);
+  if(st==='wipe'){
+    const e=(now-anim.stateT)/400;
+    drawBike(bx+10+e*6,by+2,1.2+e,'#e2463f');
+    drawGuy(POSES.wipe,{...look, x:bx-4, y:by-14, face:'o', dirty:false});
+    for(let i=0;i<4;i++){ const a=now/150+i*1.6; txt('*',bx+Math.cos(a)*10,by-24+Math.sin(a)*4,'#ffe066',8); }
+  } else {
+    const jump = st==='good' ? Math.round(Math.sin(Math.min(1,(now-anim.stateT)/800)*Math.PI)*8) : 0;
+    drawBike(bx,by-jump,0.22,'#e2463f');
+    drawGuy(POSES.bikeP,{...look, x:bx-2, y:by-10-jump, face: st==='good'?'o':'smile', dirty:false, swing:-4+Math.sin(now/90)*2});
+  }
+  if(anim.word) txt(anim.word,48,14,'#3b2340',8);
 }
 function renderSurf(now,look){
   sceneBeach(now);
@@ -504,11 +561,11 @@ function renderCuddle(now,look){
 function renderOver(now){
   if(S.cause==='tinder'){
     sceneTinder();
-    drawGuy({...POSES.stand, la:30,le:-140, ra:20,re:0},{time:now, x:48, y:46, face:'smile', blush:true});
+    drawGuy({...POSES.stand, la:30,le:-140, ra:20,re:0},{time:now, x:48, y:46, face:'smile', blush:true, can:IS_M});
     rect(17,58,62,28,'#fff');
-    txt('Bailarín, 27',48,66,'#3b2340',8);
-    txt('Santoña · surf · danza',48,74,'#888',6);
-    txt('busco quien me valore',48,81,'#ff3b6b',6);
+    txt(IS_M?'María, 1,61':'Bailarín, 27',48,66,'#3b2340',8);
+    txt(IS_M?'bici · birra · micro':'Santoña · surf · danza',48,74,'#888',6);
+    txt(IS_M?'bonito y seguro, no':'busco quien me valore',48,81,'#ff3b6b',6);
     if(Math.floor(now/600)%2) txt('GAME OVER',48,8,'#fff',8);
   } else {
     sceneStreet();
@@ -532,12 +589,12 @@ function updateBars(){
   const days=Math.floor((Date.now()-S.born)/86400000);
   { const d=new Date(); const fecha=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}); const hora=d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
     $('clock').textContent = (isNight()?'🌙 ':'☀️ ')+fecha+' · '+hora; }
-  $('sub').textContent = S.mode==='over' ? 'game over' : `la mascota de María · día ${days+1}`;
+  $('sub').textContent = S.mode==='over' ? 'game over' : `${IS_M?'la mascota del Bailarín':'la mascota de María'} · día ${days+1}`;
   $('sleepLbl').textContent = S.sleeping ? 'Despertar' : 'Dormir';
   const wine = S.mode==='wine';
   const r=$('rescue');
   if(wine){ r.classList.add('show'); const left=Math.max(0,24-S.wineHours);
-    r.innerHTML = `🍷 ¡Está bebiendo vino en la calle! Rescátalo: ${S.rescue.shower?'✅':'⬜'} ducharlo · ${S.rescue.eat?'✅':'⬜'} comer · ${S.rescue.surf?'✅':'⬜'} surfear<br>Quedan ${Math.floor(left)} h ${Math.floor((left%1)*60)} min`; }
+    r.innerHTML = (IS_M?`🍺 ¡Está de after en la calle con una birra caliente! Rescátala: ${S.rescue.shower?'✅':'⬜'} ducharla · ${S.rescue.eat?'✅':'⬜'} comer · ${S.rescue.surf?'✅':'⬜'} bici<br>`:`🍷 ¡Está bebiendo vino en la calle! Rescátalo: ${S.rescue.shower?'✅':'⬜'} ducharlo · ${S.rescue.eat?'✅':'⬜'} comer · ${S.rescue.surf?'✅':'⬜'} surfear<br>`)+`Quedan ${Math.floor(left)} h ${Math.floor((left%1)*60)} min`; }
   else r.classList.remove('show');
   document.querySelectorAll('#menu button').forEach(b=>{
     const a=b.dataset.a;
@@ -552,7 +609,7 @@ let bubbleTimer=null;
 function say(t,ms){ const b=$('bubble'); b.textContent=t; b.classList.add('show'); clearTimeout(bubbleTimer); bubbleTimer=setTimeout(()=>b.classList.remove('show'), ms||5000); }
 function modal(html){ $('card').innerHTML=html; $('modal').classList.add('show'); }
 function closeModal(){ $('modal').classList.remove('show'); }
-$('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closeModal(); });
+$('modal').addEventListener('click',e=>{ if(e.target.id==='modal' && !lockModal) closeModal(); });
 
 // sonido tipo maquinita
 let AC=null;
@@ -566,7 +623,7 @@ function checkRescue(){
   if(S.mode==='wine' && S.rescue.eat && S.rescue.shower && S.rescue.surf){
     S.mode='ok'; const s=S.stats; s.food=Math.max(s.food,50); s.clean=Math.max(s.clean,60); s.fit=Math.max(s.fit,45); s.happy=Math.max(s.happy,40);
     S.wineHours=0; guyX=48; save(); updateBars();
-    say('Ay, María... qué vergüenza. Gracias por rescatarme. No se lo cuentes a nadie del estudio. 😳',7000); jingle(true);
+    say(IS_M?'Ay, Bailarín... qué vergüenza. Gracias por rescatarme. Pero la próxima birra la pago yo. 😳':'Ay, María... qué vergüenza. Gracias por rescatarme. No se lo cuentes a nadie del estudio. 😳',7000); jingle(true);
   }
 }
 
@@ -574,54 +631,69 @@ function checkRescue(){
 const ACTIONS = {
   eat(){
     modal(`<h2>¿Qué le das?</h2><div class="opts">
-      <button data-f="acai">🫐 Açaí bowl <small>(llena mucho, sano)</small></button>
+      ${IS_M?`<button data-f="bocata">🥪 Bocata de tortilla <small>(llena mucho)</small></button>
+      <button data-f="ensalada">🥗 Ensalada <small>(sana, un poco de forma)</small></button>
+      <button data-f="birra">🍺 Una Voll-Damm <small>(muy feliz, poco sano)</small></button>`:`<button data-f="acai">🫐 Açaí bowl <small>(llena mucho, sano)</small></button>
       <button data-f="batido">🥤 Batido verde <small>(llena y da energía)</small></button>
-      <button data-f="chuche">🍭 Una chuche <small>(feliz pero poco sano)</small></button>
+      <button data-f="chuche">🍭 Una chuche <small>(feliz pero poco sano)</small></button>`}
       <button data-x>Cancelar</button></div>`);
     $('card').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ closeModal(); feed(b.dataset.f); });
     $('card').querySelector('[data-x]').onclick=closeModal;
   },
-  surf(){ startSurf(); },
-  dance(){ startDance(); },
+  surf(){ IS_M?startBike():startSurf(); },
+  dance(){ IS_M?startMic():startDance(); },
   sleep(){
-    if(S.sleeping){ S.sleeping=false; say('¿Quééé? Estaba soñando que me fichaba Pina Bausch...'); }
-    else { if(S.stats.energy>90){ say('No tengo sueño, tengo ARTE dentro.'); return; } S.sleeping=true; flourish=null; setPose('stand',1); beep(300,.2,'sine'); }
+    if(S.sleeping){ S.sleeping=false; say(IS_M?'¿Qué hora es? Estaba soñando con una bajada sin frenos...':'¿Quééé? Estaba soñando que me fichaba Pina Bausch...'); }
+    else { if(S.stats.energy>90){ say(IS_M?'¿Dormir? Si todavía no me he roto nada hoy.':'No tengo sueño, tengo ARTE dentro.'); return; } S.sleeping=true; flourish=null; setPose('stand',1); beep(300,.2,'sine'); }
     save(); updateBars();
   },
   shower(){
     beep(500,.06);
     startAnim({type:'shower', dur:3200, onEnd(){ S.stats.clean=100; S.stats.happy=clamp(S.stats.happy+3);
       if(S.mode==='wine'){ S.rescue.shower=true; say('El agua fría me devuelve la dignidad... poco a poco.'); checkRescue(); }
-      else say(pick(['Limpito y con el pelo brillante. Lo sé.','La arena no se va nunca del todo. Es parte de mí.','Huelo a coco y a éxito.'])); }});
+      else say(pick(IS_M?['Adiós al barro. Hola, siguiente aventura.','Limpia y lista para mancharme otra vez.','El agua fría despierta más que un café.']:['Limpito y con el pelo brillante. Lo sé.','La arena no se va nunca del todo. Es parte de mí.','Huelo a coco y a éxito.'])); }});
   },
   bed(){
     const left = 3*3600000 - (Date.now()-S.lastCuddle);
-    if(left>0){ const m=Math.ceil(left/60000); say(`Dame un respiro, que soy artista... (vuelve en ${m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min'})`); return; }
+    if(left>0){ const m=Math.ceil(left/60000); say(`${IS_M?'Dame un respiro, que estoy molida...':'Dame un respiro, que soy artista...'} (vuelve en ${m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min'})`); return; }
     S.sleeping=false;
     startAnim({type:'cuddle', dur:5200, onEnd(){ const s=S.stats; s.anemic=100; s.happy=clamp(s.happy+15); s.energy=clamp(s.energy+10); S.lastCuddle=Date.now();
-      say(pick(['Buenos días, María. Tengo el estado anémico al 100%. 🩸✨','Me siento como después de un estreno con ovación.','Esto ha sido mejor que una pieza de Pina Bausch. Y eso es mucho decir.'])); jingle(true); }});
+      say(pick(IS_M?['Buenos días, Bailarín. Estado anémico al 100%. 🩸✨','Mejor que una bajada sin frenos. Y eso es mucho decir.','Ahora sí. Ponme una birra para celebrarlo.']:['Buenos días, María. Tengo el estado anémico al 100%. 🩸✨','Me siento como después de un estreno con ovación.','Esto ha sido mejor que una pieza de Pina Bausch. Y eso es mucho decir.'])); jingle(true); }});
     beep(440,.15,'sine');
   },
   status(){ showStatus(); },
   help(){
-    modal(`<h2>Cómo cuidar al Bailarín</h2>
+    modal(IS_M?`<h2>Cómo cuidar a María</h2>
+    <p>Sus barras bajan con el tiempo, también con la app cerrada. Al abrirla se calcula todo lo que ha pasado.</p>
+    <p>💪 La <b>forma física</b> solo sube con la bici y cantando con el micro.<br>🩸 El <b>estado anémico</b> solo se recarga acostándote con ella (cada 3 h).</p>
+    <p>🩹 Si se cae con la bici, a veces se rompe algo y lleva escayola unas horas.</p>
+    <p>🍺 Si se queda sin comida, limpieza o forma física, acaba <b>de after en la calle con una birra caliente</b>. Tienes 24 h para rescatarla: duchándola, dándole de comer y llevándola en bici.</p>
+    <p>📱 Si la tienes sana pero sin cariño (felicidad y estado anémico muy bajos durante 12 h), <b>se abre un Tinder</b>. GAME OVER.</p>
+    <p>🚐 De vez en cuando te propondrá planes por Cantabria. Si le dices que sí, os vais en furgoneta.</p>
+    <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
+    <div class="opts"><button data-x>¡Entendido!</button><button data-sw>Cambiar de personaje</button></div>`:`<h2>Cómo cuidar al Bailarín</h2>
     <p>Sus barras bajan con el tiempo, también con la app cerrada.</p>
     <p>💪 La <b>forma física</b> solo sube surfeando y bailando.<br>🩸 El <b>estado anémico</b> solo se recarga acostándote con él (cada 3 h).</p>
     <p>🍷 Si se queda sin comida, limpieza o forma física, acaba <b>bebiendo vino en la calle</b>. Tienes 24 h para rescatarlo: duchándolo, dándole de comer y llevándolo a surfear.</p>
     <p>📱 Si lo tienes sano pero sin cariño (felicidad y estado anémico muy bajos durante 12 h), <b>se abre un Tinder</b>. GAME OVER.</p>
     <p>🎁 Si está bien cuidado, te deja regalitos en el suelo. ¡Tócalos!</p>
     <p>🚐 De vez en cuando te propondrá una excursión por Cantabria. Si le dices que sí, os vais en furgoneta.</p>
+    <p>📲 Ábrelo siempre desde el mismo enlace en Safari. Si quieres, añádelo a la pantalla de inicio (Compartir → Añadir a pantalla de inicio).</p>
     <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
-    <p>📲 Para que no pierda la partida, instálalo: en Safari toca Compartir y luego "Añadir a pantalla de inicio". Ábrelo siempre desde ese icono.</p>
-    <div class="opts"><button data-x>¡Entendido!</button></div>`);
+    
+    <div class="opts"><button data-x>¡Entendido!</button><button data-sw>Cambiar de personaje</button></div>`);
     $('card').querySelector('[data-x]').onclick=closeModal;
+    $('card').querySelector('[data-sw]').onclick=()=>{ save(); try{ localStorage.removeItem('el-bailarin-last-pet'); }catch(e){} location.hash=''; location.reload(); };
   }
 };
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 function feed(f){
   const s=S.stats;
   startAnim({type:'eat', food:f, dur:2600, onEnd(){
-    if(f==='acai'){ s.food=clamp(s.food+40); s.fit=clamp(s.fit+2); say(pick(['Açaí: el combustible de los artistas.','Mmm, sabe a mañana de olas buenas.'])); }
+    if(f==='bocata'){ s.food=clamp(s.food+40); say(pick(['Un bocata de tortilla y soy invencible.','Esto me da para tres bajadas más.'])); }
+    else if(f==='ensalada'){ s.food=clamp(s.food+25); s.fit=clamp(s.fit+3); say(pick(['Ensalada... vale, pero luego ponme una birra.','Comida sana. Que no se acostumbre nadie.'])); }
+    else if(f==='birra'){ s.food=clamp(s.food+8); s.happy=clamp(s.happy+18); s.fit=clamp(s.fit-3); say(pick(['¡Eso! Ponme otra birra.','Voll-Damm fría: mi religión.','Ahora sí. Dame el micro.'])); }
+    else if(f==='acai'){ s.food=clamp(s.food+40); s.fit=clamp(s.fit+2); say(pick(['Açaí: el combustible de los artistas.','Mmm, sabe a mañana de olas buenas.'])); }
     else if(f==='batido'){ s.food=clamp(s.food+25); s.energy=clamp(s.energy+12); say(pick(['Verde como mi alma cuando improviso.','Energía para tres contracciones seguidas.'])); }
     else { s.food=clamp(s.food+15); s.happy=clamp(s.happy+12); s.fit=clamp(s.fit-3); say(pick(['¡Azúcar! Ahora puedo girar durante una hora.','No se lo digas a mi coreógrafa.'])); }
     if(S.mode==='wine'){ S.rescue.eat=true; checkRescue(); }
@@ -635,7 +707,7 @@ function startGame(kind, rounds, onRound, onFinish){
   newZone(); $('game').classList.add('show'); updateBars(); gameLabel();
 }
 function newZone(){ game.zw = Math.max(0.14, 0.26 - game.round*0.025); game.zs = 0.1+Math.random()*(0.8-game.zw); const z=$('zone'); z.style.left=(game.zs*100)+'%'; z.style.width=(game.zw*100)+'%'; }
-function gameLabel(){ $('gameLbl').textContent = (game.kind==='surf'?'🏄 Ola':'💃 Movimiento')+` ${game.round+1}/${game.rounds} · ¡toca en lo verde!`; }
+function gameLabel(){ $('gameLbl').textContent = ({surf:'🏄 Ola',bike:'🚵 Curva',mic:'🎤 Estrofa'}[game.kind]||'💃 Movimiento')+` ${game.round+1}/${game.rounds} · ¡toca en lo verde!`; }
 function gameTap(){
   if(!game || game.state!=='aim') return;
   const hit = game.pos>=game.zs && game.pos<=game.zs+game.zw;
@@ -673,6 +745,33 @@ function startDance(){
       jingle(hits>=3); save(); });
 }
 
+function startBike(){
+  S.sleeping=false; anim={type:'bike', start:performance.now(), state:'ride'};
+  startGame('bike',3,(hit)=>{ anim.state=hit?'good':'wipe'; anim.stateT=performance.now(); anim.word=hit?pick(['¡DERRAPE!','¡SALTO!','¡SIN MANOS!']):pick(['¡HOSTIÓN!','¡AL SUELO!','¡MADRE MÍA!']);
+      if(!hit && Math.random()<0.35 && !(S.injuredUntil>Date.now())){ S.injuredUntil=Date.now()+6*3600000; anim.hurt=true; }
+      setTimeout(()=>{ if(anim&&anim.type==='bike'){anim.state='ride';anim.word=null;} },900); },
+    (hits)=>{ const s=S.stats, hurt=anim&&anim.hurt; s.fit=clamp(s.fit+8+hits*6); s.happy=clamp(s.happy+6+hits*5); s.clean=clamp(s.clean-15); s.energy=clamp(s.energy-10); s.food=clamp(s.food-5);
+      anim=null; setPose('stand',1);
+      if(S.mode==='wine'){ S.rescue.surf=true; S.stats.clean=Math.max(S.stats.clean,10); say('La bajada me ha quitado la resaca... y un poco de piel.'); checkRescue(); }
+      else if(hurt) say('Me he roto algo. No puede ser bonito y seguro. 🩹 (La escayola se quita sola en 6 horas.)',8000);
+      else say(hits===3?'¡3 de 3! Ni un rasguño. Raro en mí.':hits>0?`${hits} curvas limpias y unos cuantos moratones. Día normal.`:'Me he comido todas las curvas. Literalmente.');
+      jingle(hits>0); save(); });
+}
+function startMic(){
+  S.sleeping=false; anim={type:'dance', mic:true, start:performance.now()};
+  const order=['cielo','salto','grito','arabesque','contraccion','caida'].sort(()=>Math.random()-.5);
+  const words=['¡QUE SUENE!','¡OTRA!','¡PONME UNA BIRRA!','¡ESTO ES UNA FIESTA!','¡SUBE EL VOLUMEN!','¡TODOS CONMIGO!'];
+  setPose('stand',1);
+  startGame('mic',5,(hit,i)=>{
+      if(hit){ setPose(order[i%order.length],280); anim.word=words[i%words.length]; floating.push({x:30+Math.random()*36,y:40,t0:performance.now(),kind:'note'}); }
+      else { setPose('trip',200); anim.word=pick(['¡DESAFINO!','¿cuál era la letra?','¡ACOPLE!']); }
+      setTimeout(()=>{ if(anim&&anim.type==='dance'){ setPose('stand',250); anim.word=null; } },900); },
+    (hits)=>{ const s=S.stats; s.fit=clamp(s.fit+5+hits*3); s.happy=clamp(s.happy+8+hits*4); s.energy=clamp(s.energy-8); s.food=clamp(s.food-4);
+      anim.word = hits>=4?'¡BIS! ¡BIS!':'fin.'; anim.done=performance.now()+1200;
+      setTimeout(()=>say(hits===5?'¡Bis! ¡Bis! Lo sé, soy una estrella.':hits>=3?'He cantado como nunca. Bueno, como siempre: muy alto.':'Me he olvidado la letra, pero el micro no lo suelto.'),1300);
+      jingle(hits>=3); save(); });
+}
+
 
 // ====================== EXCURSIONES POR CANTABRIA ======================
 const TRIPS = [
@@ -690,6 +789,27 @@ const TRIPS = [
  {id:'anchoas', short:'Santoña', name:'Anchoas en Santoña', scene:'food', food:'anchoas', ask:'¿Nos tomamos unas anchoas en el puerto de Santoña? Invito yo (con tu dinero).', fact:'Anchoas de Santoña, las más famosas del Cantábrico. En Valladolid me las mandaban en lata; aquí las tengo frescas.', fx:{food:35,happy:18,energy:-5}},
  {id:'cabomayor', short:'Cabo Mayor', name:'Faro de Cabo Mayor', scene:'faro', ask:'¿Vamos al faro de Cabo Mayor a ver el atardecer? Tengo un solo preparado para el viento.', fact:'Faro de Cabo Mayor, en Santander: acantilados, mar Cantábrico y viento en el pelo. Mi melena ha nacido para esto.', fx:{happy:25,energy:-8}},
 ];
+const TRIPS_M = {
+ fuente:['Bailarín, ¿subimos en el teleférico de Fuente Dé? Arriba hay rutas brutales.','Teleférico de Fuente Dé: 753 metros de desnivel en unos 4 minutos, hasta los 1.823 m de El Cable. Yo bajaría andando... o rodando.'],
+ suances:['Bailarín, hay olas en Suances. Tú surfeas y yo me tiro de cabeza.','Playa de Los Locos, en Suances: de las más famosas de Cantabria para surfear. El nombre es para mí.'],
+ somo:['¿Nos vamos a Somo? Tú a surfear y yo a ver si me rompo algo nuevo.','Somo: olas, arena y Santander al otro lado de la bahía. Hoy me meto al agua aunque esté helada.'],
+ potes:['¿Vamos a Potes a por un cocido lebaniego? Y una birra, obviamente.','Potes, capital de Liébana: cocido lebaniego y una birra. Hoy no me levanto de la silla.'],
+ rabas:['Ponme unas rabas y una birra. ¿Nos vamos a Santander, Bailarín?','Rabas en Santander: calamar rebozado, limón y una Voll-Damm. Perfección.'],
+ pas:['¿Subimos a los Valles Pasiegos? Bajada en bici y luego sobaos.','Valles Pasiegos: sobaos, quesada y una cuesta que me pide bajarla sin frenos.'],
+ hermida:['¿Nos vamos a escalar a La Hermida? Yo te aseguro, tranquilo... más o menos.','Desfiladero de La Hermida: uno de los más largos de España. Paredes enormes. Mi sitio feliz.'],
+ santillana:['¿Vamos a Santillana del Mar? Hay terracitas para una birra.','Santillana del Mar, la villa de las tres mentiras: ni es santa, ni llana, ni tiene mar. Pero birra sí tiene.'],
+ comillas:['¿Comillas? El Capricho de Gaudí y luego playa. Plan redondo.','El Capricho, en Comillas: una de las pocas obras de Gaudí fuera de Cataluña. Ojalá tuviera rampa para la bici.'],
+ berria:['Bailarín, Berria está aquí al lado. ¿Bajamos a darnos un baño helado?','Playa de Berria, en Santoña, a los pies del Buciero. El agua congela, por eso mola.'],
+ caballo:['¿Bajamos al Faro del Caballo? Te echo una carrera por las escaleras.','Faro del Caballo, en Santoña: cientos de escalones en el acantilado del Buciero. Los bajo corriendo. No puede ser bonito y seguro.'],
+ anchoas:['¿Unas anchoas en el puerto de Santoña? Con una birra al lado.','Anchoas de Santoña con una birra fría. Esto es Cantabria, Bailarín.'],
+ cabomayor:['¿Vamos al faro de Cabo Mayor a ver el atardecer? Me llevo el altavoz.','Faro de Cabo Mayor, en Santander: acantilados y atardecer. Hoy le canto yo al mar.'],
+};
+if(IS_M){
+  for(const t of TRIPS){ const m=TRIPS_M[t.id]; if(m){ t.ask=m[0]; t.fact=m[1]; } }
+  TRIPS.push(
+   {id:'bicipicos', short:'Liébana', name:'Bajada en bici por Liébana', scene:'biketrip', ask:'Bailarín, ¿hacemos una bajada en bici por Liébana? Te espero abajo... o en urgencias.', fact:'Bajada en bici por Liébana, con los Picos de Europa al fondo. Frenar es de cobardes. (Frena, Bailarín.)', fx:{happy:25,fit:20,energy:-20,clean:-15}, risk:true},
+   {id:'fiesta', short:'Santoña', name:'Fiesta con micro en Santoña', scene:'party', ask:'¡Esta noche hay fiesta en Santoña! ¿Vamos? Ya tengo el micro reservado.', fact:'Fiesta en Santoña: luces, música y yo con el micro. Ponme una birra, que voy a cantar.', fx:{happy:30,energy:-20,fit:2}});
+}
 function proposeTrip(){
   const pool=TRIPS.filter(t=>t.id!==S.lastTripId), t=pick(pool), b=$('bubble');
   b.textContent='';
@@ -710,7 +830,8 @@ function startTrip(t){
   startAnim({type:'trip', trip:t, dur:13000, onEnd(){
     const s=S.stats; for(const k in t.fx) s[k]=clamp(s[k]+t.fx[k]);
     S.trips[t.id]=(S.trips[t.id]||0)+1; S.lastTrip=Date.now(); S.lastTripId=t.id; guyX=48;
-    say(pick(['¡Qué día! Cantabria infinita. Gracias por venir conmigo, María.','Vuelvo a casa con arena, recuerdos y una coreografía nueva.','Te he guardado una postal en tu colección. Mírala en Estado.']),6000);
+    if(t.risk && Math.random()<0.3 && !(S.injuredUntil>Date.now())){ S.injuredUntil=Date.now()+6*3600000; say('Bueno... me he roto algo en la bajada. Pero ha merecido la pena. 🩹',7000); return; }
+    say(pick(IS_M?['¡Qué día! Cantabria infinita. Gracias por venir conmigo, Bailarín.','Vuelvo a casa con barro, moratones y ganas de más.','Te he guardado una postal en tu colección. Mírala en Estado.']:['¡Qué día! Cantabria infinita. Gracias por venir conmigo, María.','Vuelvo a casa con arena, recuerdos y una coreografía nueva.','Te he guardado una postal en tu colección. Mírala en Estado.']),6000);
   }});
 }
 function postales(){
@@ -750,8 +871,8 @@ function renderVan(now,e,t){
   heart(vx+15,vy+14,'#ff6f9f');
   // el Bailarín conduciendo, con la melena al viento
   const hx=vx+32, hy=vy+7;
-  for(let i=0;i<9;i++){ const yy=hy-1+Math.sin(now/80+i*0.8)*1.2; R(hx-3-i,yy,1,2,i>5?COL.hairD:COL.hair); }
-  disc(hx,hy,3,COL.hair); disc(hx+1,hy+1,2,COL.skin); R(hx+2,hy,1,1,COL.eye); R(hx+1,hy+2,2,1,COL.mouth);
+  for(let i=0;i<9;i++){ const yy=hy-1+Math.sin(now/80+i*0.8)*1.2; R(hx-3-i,yy,1,2,i>5?HAIRD:HAIR); }
+  disc(hx,hy,3,HAIR); disc(hx+1,hy+1,2,COL.skin); R(hx+2,hy,1,1,EYE); R(hx+1,hy+2,2,1,COL.mouth);
   for(const wx of [vx+8,vx+32]){ disc(wx,vy+20,3,'#222'); const a=now/60; R(wx+Math.round(Math.cos(a)*1.5),vy+20+Math.round(Math.sin(a)*1.5),1,1,'#aaa'); }
   for(let i=0;i<3;i++){ const k=((e/25+i*8)%24); disc(vx-3-k,vy+17-k/4,1+Math.floor(k/10),'rgba(255,255,255,.6)'); }
   txt('Santoña → '+t.short,48,9,'#3b2340',7);
@@ -768,7 +889,7 @@ function renderPlace(now,e,t,look){
     const cx=x0+(x1-x0)*p, cy=y0+(y1-y0)*p;
     line(cx,cy,cx,cy+6,1,'#333');
     rect(Math.round(cx-6),Math.round(cy+6),13,10,'#e2463f'); rect(Math.round(cx-5),Math.round(cy+8),11,4,'#cdefff');
-    disc(cx,cy+11,2,COL.hair); R(cx,cy+11,2,2,COL.skin);
+    disc(cx,cy+11,2,HAIR); R(cx,cy+11,2,2,COL.skin);
     if(p>=1){ txt('¡1.823 m!',30,30,'#3b2340',8); }
     label('Teleférico de Fuente Dé');
   } else if(t.scene==='surf'){
@@ -813,6 +934,15 @@ function renderPlace(now,e,t,look){
     rect(0,70,W,26,'#6fbf5f');
     drawGuy(dancePose,{...lk, x:40, y:GROUND-16, swing:Math.sin(now/110)*4});
     label('El Capricho de Gaudí, Comillas');
+  } else if(t.scene==='biketrip'){
+    sceneSlope(now); const bx=40, by=Math.round(58+bx*0.22-4);
+    drawBike(bx,by,0.22,'#e2463f'); drawGuy(POSES.bikeP,{...lk, x:bx-2, y:by-10, face:'o', swing:-5});
+    label(t.name);
+  } else if(t.scene==='party'){
+    sceneParty(now); const mv=['cielo','salto','grito','arabesque'][Math.floor(e/700)%4];
+    drawGuy(POSES[mv],{...lk, x:48, y:GROUND-16, mic:true, swing:Math.sin(now/110)*4});
+    floating.length<3 && Math.random()<.05 && floating.push({x:30+Math.random()*36,y:40,t0:now,kind:'note'}); drawFloating(now);
+    label(t.name);
   } else {
     for(let y=0;y<60;y++) rect(0,y,W,1, y<20?'#ff9f6b':y<40?'#ffb88c':'#ffd2a8');
     disc(70,52,8,'#ffe066');
@@ -844,31 +974,33 @@ $('screen').addEventListener('pointerdown',e=>{
 });
 function collectGift(){
   const g=S.floorGift; S.floorGift=null; S.gifts[g.type]=(S.gifts[g.type]||0)+1; jingle(true);
-  if(g.type==='nota'){ const n=pick(NOTES); S.notes.push(n); if(S.notes.length>30) S.notes.shift(); modal(`<h2>💌 Una nota para ti</h2><p class="note">${n}</p><p style="text-align:right">— el Bailarín</p><div class="opts"><button data-x>Guardar en mi colección</button></div>`); $('card').querySelector('[data-x]').onclick=closeModal; }
-  else say(`¡Un regalo para ti, María! ${GIFT_TYPES[g.type].e} (lo he guardado en tu colección)`);
+  if(g.type==='nota'){ const n=pick(NOTES); S.notes.push(n); if(S.notes.length>30) S.notes.shift(); modal(`<h2>💌 Una nota para ti</h2><p class="note">${n}</p><p style="text-align:right">— ${IS_M?'María':'el Bailarín'}</p><div class="opts"><button data-x>Guardar en mi colección</button></div>`); $('card').querySelector('[data-x]').onclick=closeModal; }
+  else say(`¡Un regalo para ti, ${YOU}! ${GIFT_TYPES[g.type].e} (lo he guardado en tu colección)`);
   save();
 }
 function showStatus(){
   const s=S.stats, days=Math.floor((Date.now()-S.born)/86400000);
   const rows=BARS.map(([k,ic,n])=>`<span>${ic} ${n}</span><div class="tr"><div class="fi ${s[k]<25?'low':s[k]<50?'mid':''}" style="width:${s[k]}%;position:absolute;left:0;top:0;bottom:0"></div></div><span>${Math.round(s[k])}</span>`).join('');
   const gifts=Object.entries(GIFT_TYPES).map(([k,g])=>`<div><b>${g.e}</b>${g.n}: ${S.gifts[k]||0}</div>`).join('');
-  const notes = S.notes.length? S.notes.slice(-5).reverse().map(n=>`<div class="note">${n}</div>`).join('') : '<p><small>Aún no te ha dejado notas. Cuídalo bien.</small></p>';
+  const notes = S.notes.length? S.notes.slice(-5).reverse().map(n=>`<div class="note">${n}</div>`).join('') : `<p><small>Aún no te ha dejado notas. ${IS_M?'Cuídala':'Cuídalo'} bien.</small></p>`;
   const left = 3*3600000 - (Date.now()-S.lastCuddle);
-  modal(`<h2>📋 Estado del Bailarín</h2>
-    <p>Lleva <b>${days+1}</b> día${days?'s':''} contigo${S.generation>1?` (es tu Bailarín nº ${S.generation})`:''}.</p>
+  modal(`<h2>📋 Estado ${IS_M?'de María':'del Bailarín'}</h2>
+    <p>Lleva <b>${days+1}</b> día${days?'s':''} contigo${S.generation>1?` (es tu ${IS_M?'María':'Bailarín'} nº ${S.generation})`:''}.</p>
     <div class="st">${rows}</div>
-    <p>❤️ ${left>0?`Podrás acostarte con él en ${Math.ceil(left/60000)} min.`:'Está disponible para acostarse contigo.'}</p>
+    <p>❤️ ${left>0?`Podrás acostarte con ${IS_M?'ella':'él'} en ${Math.ceil(left/60000)} min.`:'Está disponible para acostarse contigo.'}</p>
     <h2 style="font-size:18px;margin-top:12px">🎁 Tu colección</h2><div class="gifts">${gifts}</div>${notes}<h2 style="font-size:18px;margin-top:12px">🚐 Postales de Cantabria</h2>${postales()}
     <div class="opts"><button data-x>Cerrar</button></div>`);
   $('card').querySelector('[data-x]').onclick=closeModal;
 }
 function showOver(){
   $('bubble').classList.remove('show');
-  const t = S.cause==='tinder'
+  const t = IS_M ? (S.cause==='tinder'
+    ? `<p>La tenías sanísima, pero sin cariño... y <b>se ha abierto un Tinder</b>.</p><p>Su bio dice: <i>"María, 1,61. Bici, deporte de riesgo, Voll-Damm y micro en las fiestas. No puede ser bonito y seguro."</i></p>`
+    : `<p>Pasó 24 horas <b>de after en la calle con una birra caliente</b> y nadie fue a rescatarla. Ahora es la reina del karaoke del puerto.</p>`) : S.cause==='tinder'
     ? `<p>Lo tenías sanísimo, pero sin cariño... y <b>se ha abierto un Tinder</b>.</p><p>Su bio dice: <i>"Bailarín, 27. De Valladolid, vivo en Santoña. Surf, danza y llorar en la playa. Busco a alguien que me valore."</i></p>`
     : `<p>Pasó 24 horas <b>bebiendo vino en la calle</b> y nadie fue a rescatarlo. Ahora vive en el banco y da clases de contemporáneo a las palomas.</p>`;
-  modal(`<div class="over"><div class="big">GAME OVER</div>${t}<p><small>Tu colección de regalos se conserva. (Toca fuera para ver la escena.)</small></p><div class="opts"><button data-new>Adoptar un Bailarín nuevo</button></div></div>`);
-  $('card').querySelector('[data-new]').onclick=()=>{ S=fresh(S); S.introSeen=true; guyX=48; save(); closeModal(); updateBars(); say('Hola, María. Soy el Bailarín. Esta vez cuídame, ¿vale? 🥺',6000); };
+  modal(`<div class="over"><div class="big">GAME OVER</div>${t}<p><small>Tu colección de regalos se conserva. (Toca fuera para ver la escena.)</small></p><div class="opts"><button data-new>${IS_M?'Empezar de nuevo con María':'Adoptar un Bailarín nuevo'}</button></div></div>`);
+  $('card').querySelector('[data-new]').onclick=()=>{ S=fresh(S); S.introSeen=true; guyX=48; save(); closeModal(); updateBars(); say(IS_M?'Hola, Bailarín. Soy María. Esta vez cuídame, ¿vale? Y ponme una birra. 🥺':'Hola, María. Soy el Bailarín. Esta vez cuídame, ¿vale? 🥺',6000); };
 }
 
 $('menu').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||b.disabled) return; beep(600,.04); ACTIONS[b.dataset.a](); });
@@ -944,6 +1076,32 @@ const NEED = {
 };
 const PAT_LINES=['Ay, qué gusto. Sigue.','Eso ha sido muy Pina Bausch.','Me has tocado el alma (y el hombro).','¡Más mimos, menos críticas!','Siento una contracción... de felicidad.','*suspira dramáticamente*'];
 const WINE_LINES=['María... el arte no paga el alquiler... hic.','Este vino es muy contemporáneo: no tiene ningún sentido.','Brindo por las coreografías que nunca hicimos... hic.','No estoy borracho, estoy explorando el suelo de la calle.','¿Me rescatas? Ducha, comida y una ola. Por favor.'];
+if(IS_M){
+  LINES.splice(0,LINES.length,
+    'Ponme una birra.','No puede ser bonito y seguro.','Mido 1,61, pero bajando en bici mido dos metros.',
+    'Hoy solo me he caído una vez de la bici. Récord personal.','¿Que si me duele? Claro. ¿Que si vuelvo a bajar? También.',
+    'Una Voll-Damm bien fría y soy otra persona. Una más feliz.','En la fiesta de anoche cogí el micro y no lo solté hasta las cinco. Normal.',
+    'Bailarín, tú bailas y yo canto. Somos un festival.','En urgencias ya me saludan por mi nombre.',
+    'El casco despeina, pero la escayola despeina más.','Si no hay riesgo, no hay historia que contar.',
+    'Mi plan ideal: bajada en bici, baño en el mar y birra en el puerto.','¿Miedo? Yo he dicho ¡vamos!',
+    'Tengo más moratones que días de vacaciones.','Dame el micro, que esta canción me la sé. Más o menos.',
+    'Bailarín, menos contemporáneo y más reguetón.','Barranquismo, escalada, parapente... ¿qué hacemos hoy?',
+    'Mi rodilla tiene más tiritas que una farmacia.','Dato: la Voll-Damm es una doble malta de Damm. Información fundamental.',
+    'El Cantábrico está helado. Perfecto para despertarse.','Si me ves quieta, estoy pensando en la siguiente locura.',
+    'Hoy no me rompo nada. Prometido. (No prometo nada.)','¿Karaoke esta noche? Yo ya he calentado la voz.',
+    'En Santoña seguro que hay fiesta. Y donde hay fiesta, hay micro.','Bailarín, ¿me sujetas la birra? Voy a hacer una cosa.',
+    'Bonito y seguro no puede ser. Elijo bonito.','Bailarín, ¿subimos el Buciero corriendo? El último paga las birras.');
+  Object.assign(NEED,{
+    food:['Tengo hambre. Ponme algo... y una birra.','Me comería un bocata de lo que sea.'],
+    energy:['Estoy reventada. Hasta el micro pesa.','Necesito dormir. Mañana hay bajada.'],
+    clean:['Llevo barro hasta en las orejas.','Huelo a bici, a sudor y a aventura.'],
+    happy:['Me aburro... ¿no hay nada peligroso que hacer?','Necesito una fiesta. O una cuesta. O las dos cosas.'],
+    fit:['Llevo mucho sin bici. Me estoy oxidando.','Necesito adrenalina, Bailarín.'],
+    anemic:['Estoy pálida... mi estado anémico pide que te acuestes conmigo. 🩸','Me falta hierro... y mimos.']});
+  PAT_LINES.splice(0,PAT_LINES.length,'Jajaja, para, que me haces cosquillas.','¿Eso es un mimo o un placaje?','Ponme una birra y sigue.','Así sí, Bailarín.','¡Cuidado, que ahí tengo un moratón!');
+  WINE_LINES.splice(0,WINE_LINES.length,'Bailarín... ponme otra birra... hic.','Esta birra está caliente, como mi corazón.','No puede ser bonito y seguro... ni sobrio.','¿Dónde está el micro? Quiero cantarle a las farolas.','Rescátame: ducha, comida y una bajada en bici. Por favor.');
+  NOTES.splice(0,NOTES.length,'Bailarín, eres la única persona que baila peor de lo que yo canto. Te quiero.','Te debo una birra. Bueno, varias.','Gracias por cuidarme cuando me rompo cosas.','Si te caes, yo te levanto. Si me caigo yo, llama a urgencias.','Tú pones el baile, yo pongo el micro.','Contigo hasta las cuestas parecen bajadas.');
+}
 let nextLine=performance.now()+8000;
 function chatter(now){
   if(now<nextLine || anim || game || S.mode==='over' || S.sleeping || $('modal').classList.contains('show')) return;
@@ -951,6 +1109,7 @@ function chatter(now){
   if(S.mode==='wine'){ say(pick(WINE_LINES)); return; }
   const low = BARS.filter(([k])=>S.stats[k]<30).map(b=>b[0]);
   if(low.length && Math.random()<.6){ say(pick(NEED[pick(low)])); return; }
+  if(IS_M && S.injuredUntil>Date.now() && Math.random()<.3){ say(pick(['Con la escayola también se puede montar en bici. Creo.','Esto no es nada. La próxima vez me rompo algo más gordo.','¿Me firmas la escayola, Bailarín?'])); return; }
   if(Date.now()-S.lastTrip>20*60000 && S.stats.energy>=15 && Math.random()<(Object.keys(S.trips).length?0.3:0.5)){ proposeTrip(); return; }
   say(pick(LINES), 7000);
 }
@@ -964,9 +1123,9 @@ function loop(now){
     const before=S.mode, wasSleeping=S.sleeping;
     step(simAcc/3600); simAcc=0;
     if(before!==S.mode){ anim=null; game=null; $('game').classList.remove('show');
-      if(S.mode==='wine') say('Me he ido... a la calle... con un cartón de vino. 🍷 Rescátame, María.',8000);
+      if(S.mode==='wine') say(IS_M?'Me he ido de after... a la calle... con una birra. 🍺 Rescátame, Bailarín.':'Me he ido... a la calle... con un cartón de vino. 🍷 Rescátame, María.',8000);
       if(S.mode==='over') showOver(); }
-    if(wasSleeping && !S.sleeping) say('¡Buenos días! He soñado que bailaba en el mar.');
+    if(wasSleeping && !S.sleeping) say(IS_M?'¡Buenos días! ¿Qué deporte de riesgo toca hoy?':'¡Buenos días! He soñado que bailaba en el mar.');
   }
   if(uiAcc>=0.5){ uiAcc=0; updateBars(); }
   if(saveAcc>=5){ saveAcc=0; save(); }
@@ -982,8 +1141,28 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); e
 window.addEventListener('pagehide',save);
 
 // inicio
+var lockModal=false;
+function showSelector(){
+  lockModal=true;
+  modal(`<h2>¿A quién vas a cuidar?</h2>
+  <div class="opts"><button data-p="bailarin">🩰 <b>Al Bailarín</b><br><small>Surfero rubio de Valladolid que vive en Santoña. Lo cuida María.</small></button>
+  <button data-p="maria">🚵‍♀️ <b>A María</b><br><small>1,61 m de deporte de riesgo, micro y Voll-Damm. La cuida el Bailarín.</small></button></div>
+  <p><small>Cada personaje tiene su propia partida guardada.</small></p>`);
+  $('card').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{ try{ localStorage.setItem('el-bailarin-last-pet', b.dataset.p); }catch(e){} location.hash=b.dataset.p; location.reload(); });
+}
+if(IS_M){ document.querySelector('h1').textContent='MARÍA'; document.querySelector('.foot').textContent='Toca a María para darle mimos · se guarda sola'; document.querySelector('[data-a=surf]').innerHTML='<span class="e">🚵</span>Bici'; document.querySelector('[data-a=dance]').innerHTML='<span class="e">🎤</span>Micro'; }
 updateBars(); save();
-if(S.mode==='over') showOver();
+if(!CAN_SAVE){ const r=$('rescue'); setTimeout(()=>{ say('⚠️ Este navegador no me deja guardar la partida. Ábreme en Safari y añádeme a la pantalla de inicio.',12000); },1500); }
+if(SELECTING){ showSelector(); }
+else if(S.mode==='over') showOver();
+else if(!S.introSeen && IS_M){
+  modal(`<h2>¡Hola, Bailarín! 👋</h2><p>Te presento a <b>María</b>: 1,61 m de pura energía, media melena negra y adicta al deporte de riesgo. De vez en cuando se rompe algo hostiándose con la bici. Bebe Voll-Damm y en las fiestas no suelta el micro.</p>
+  <p>Ahora es tu responsabilidad. Dale de comer, llévala en bici y a cantar, dúchala y dale mucho cariño. Ella te propondrá planes.</p>
+  <p>Si la descuidas... acabará <b>de after en la calle con una birra caliente</b>. Y si no le das amor... <b>se abrirá un Tinder</b>.</p>
+  <div class="opts"><button data-x>La cuidaré 💖</button><button data-h>¿Cómo se juega?</button></div>`);
+  $('card').querySelector('[data-x]').onclick=()=>{ S.introSeen=true; save(); closeModal(); say('Hola, Bailarín. Soy María. Ponme una birra y hablamos.',6000); };
+  $('card').querySelector('[data-h]').onclick=()=>{ S.introSeen=true; save(); ACTIONS.help(); };
+}
 else if(!S.introSeen){
   modal(`<h2>¡Hola, María! 👋</h2><p>Te presento al <b>Bailarín</b>: pelo largo, rubio, ojos claros, de Valladolid pero vive en Santoña. Surfero y bailarín contemporáneo muy, muy intenso.</p>
   <p>Ahora es tu responsabilidad. Dale de comer, llévalo a surfear y a bailar, dúchalo y dale mucho cariño.</p>
@@ -991,8 +1170,8 @@ else if(!S.introSeen){
   <div class="opts"><button data-x>Lo cuidaré 💖</button><button data-h>¿Cómo se juega?</button></div>`);
   $('card').querySelector('[data-x]').onclick=()=>{ S.introSeen=true; save(); closeModal(); say('Hola, María. Soy el Bailarín. Hoy me siento muy... contemporáneo.',6000); };
   $('card').querySelector('[data-h]').onclick=()=>{ S.introSeen=true; save(); ACTIONS.help(); };
-} else if(S.welcome==='wine'){ say('Mientras no estabas... me fui a la calle con un cartón de vino. 🍷 Rescátame.',8000); }
-else setTimeout(()=>say(pick(['¡María! Has vuelto. Te he echado de menos en espiral.','¡Hola! Llevaba un rato haciendo pliés esperándote.','¡Por fin! Tenía una pieza preparada para ti.'])),800);
+} else if(S.welcome==='wine'){ say(IS_M?'Mientras no estabas... me fui de after con una birra. 🍺 Rescátame.':'Mientras no estabas... me fui a la calle con un cartón de vino. 🍷 Rescátame.',8000); }
+else setTimeout(()=>say(pick(IS_M?['¡Bailarín! Por fin. Ponme una birra y te cuento.','¡Hola! ¿Hoy qué nos jugamos el cuello?','¡Has vuelto! Tenía un plan arriesgadísimo para ti.']:['¡María! Has vuelto. Te he echado de menos en espiral.','¡Hola! Llevaba un rato haciendo pliés esperándote.','¡Por fin! Tenía una pieza preparada para ti.'])),800);
 requestAnimationFrame(loop);
 
 
