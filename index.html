@@ -42,8 +42,13 @@ h1{margin:0 0 6px;text-align:center;font-size:24px;letter-spacing:2px;color:var(
    text-shadow:2px 2px 0 var(--ink)}
 .sub{text-align:center;font-size:13px;margin-bottom:8px;opacity:.75}
 .clock{text-align:center;font-size:16px;font-weight:700;margin:-2px 0 8px;font-variant-numeric:tabular-nums;color:var(--ink)}
-.swaprow{display:flex;justify-content:center;margin:2px 0 8px}
-#swap{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 14px;box-shadow:0 3px 0 var(--btn-dark);cursor:pointer}
+.swaprow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 8px}
+#stars{font-weight:700;font-size:15px}
+.card h3{margin:10px 0 4px;font-size:16px}
+.ward{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:5px 8px;margin:4px 0;font-size:15px}
+.ward button{font-size:14px;padding:5px 8px;box-shadow:0 2px 0 var(--btn-dark);white-space:nowrap}
+.ward button:disabled{opacity:.5}
+#swap,#helpBtn{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 14px;box-shadow:0 3px 0 var(--btn-dark);cursor:pointer}
 #swap:active{transform:translateY(2px);box-shadow:0 1px 0 var(--btn-dark)}
 .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;margin:0 6px 10px}
 .bar{display:flex;align-items:center;gap:4px;font-size:12px}
@@ -104,7 +109,7 @@ canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image
 <div class="egg">
   <h1>EL BAILARÍN</h1>
   <div class="sub" id="sub">la mascota de María</div>
-  <div class="swaprow"><button id="swap" type="button"></button></div>
+  <div class="swaprow"><span id="stars">⭐ 5</span><button id="swap" type="button"></button><button id="helpBtn" type="button">❔ Ayuda</button></div>
   <div class="clock" id="clock"></div>
   <div class="bars" id="bars"></div>
   <div class="screenwrap" id="screen">
@@ -121,7 +126,7 @@ canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image
     <button data-a="shower"><span class="e">🚿</span>Ducharse</button>
     <button data-a="bed"><span class="e">❤️</span>Acostarse</button>
     <button data-a="status"><span class="e">📋</span>Estado</button>
-    <button data-a="help"><span class="e">❔</span>Ayuda</button>
+    <button data-a="closet"><span class="e">👕</span>Armario</button>
   </div>
   <div class="foot">Toca al Bailarín para darle mimos · se guarda solo</div>
 </div>
@@ -161,7 +166,7 @@ function fresh(keep){
   const now = Date.now();
   return {v:1, born:now, last:now, stats:{food:85,energy:85,clean:85,happy:85,fit:75,anemic:75},
     mode:'ok', sleeping:false, wineHours:0, rescue:{eat:false,shower:false,surf:false}, lowLove:0,
-    lastCuddle:0, lastPat:0, gifts:(keep&&keep.gifts)||{}, notes:(keep&&keep.notes)||[], trips:(keep&&keep.trips)||{}, lastTrip:0, lastTripId:null, floorGift:null, giftTimer:0,
+    lastCuddle:0, lastPat:0, gifts:(keep&&keep.gifts)||{}, notes:(keep&&keep.notes)||[], owned:keep&&keep.owned, outfit:keep&&keep.outfit, stars:keep&&keep.stars, trips:(keep&&keep.trips)||{}, lastTrip:0, lastTripId:null, floorGift:null, giftTimer:0,
     cause:null, introSeen:!!(keep&&keep.introSeen), generation:((keep&&keep.generation)||0)+1, deaths:(keep&&keep.deaths)||0};
 }
 function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.v===1) return s; }catch(e){} return null; }
@@ -255,6 +260,7 @@ function lerpPose(a,b,k){ const o={}; const keys=new Set([...Object.keys(a),...O
   for(const key of keys){ const va=a[key], vb=b[key]; if(typeof va==='number'||typeof vb==='number') o[key]=(va||0)+((vb||0)-(va||0))*k; else o[key]= k<.5?va:vb; } return o; }
 
 function drawGuy(p, o){
+  const OF=outfitColors();
   const t = p.t||0;
   const hip=[o.x+(p.dx||0), o.y+(p.dy||0)];
   const up=[Math.sin(t*Math.PI/180), -Math.cos(t*Math.PI/180)], down=[-up[0],-up[1]];
@@ -264,7 +270,7 @@ function drawGuy(p, o){
   SCX = hip[0]; SX = o.sx!==undefined?o.sx:1;
   // pelo largo por detrás
   const swing = (p.swing||0) + (o.swing||0);
-  const HL=IS_M?5:10;
+  const HL=IS_M?9:10;
   for(let i=0;i<=HL;i++){
     const c=add(add(head,down,i), perp, swing*i/10 + (o.wild?Math.sin(i*1.7)*1.2:0));
     const wdt = 6 - (i>HL-3?(i-(HL-3)):0)*.6;
@@ -278,19 +284,21 @@ function drawGuy(p, o){
     const d1=dv(a1), knee=add(h0,d1,8*L), d2=dv(a1+a2), foot=add(knee,d2,8*L);
     line(h0[0],h0[1],knee[0],knee[1],IS_M?3:4,skin);
     line(knee[0],knee[1],foot[0],foot[1],3,skin);
-    line(h0[0],h0[1],h0[0]+d1[0]*5,h0[1]+d1[1]*5,5,SHORTS);
+    line(h0[0],h0[1],h0[0]+d1[0]*5,h0[1]+d1[1]*5,5,OF.s);
     R(foot[0]-1.5,foot[1]-1,3,2,skinD);
   }
   // pantalón
-  line(lh[0],lh[1],rh[0],rh[1],6,SHORTS);
+  line(lh[0],lh[1],rh[0],rh[1],6,OF.s);
   // torso (camiseta de tirantes)
   const tw = IS_M?(o.fofo?9:7):(o.fofo?11:8);
-  line(hip[0]+up[0]*1,hip[1]+up[1]*1, sb[0],sb[1], tw, SHIRT);
-  if(o.fofo){ const b=add(hip,up,4); disc(b[0],b[1],4,SHIRT); }
+  line(hip[0]+up[0]*1,hip[1]+up[1]*1, sb[0],sb[1], tw, OF.c);
+  if(OF.pat==='stripes'){ for(const k of [-2,0,2]){ const a0=add(add(hip,up,1),perp,k), a1=add(sb,perp,k); line(a0[0],a0[1],a1[0],a1[1],1,'#ffffff'); } }
+  if(OF.pat==='dots'){ for(const [k,h] of [[-2,3],[2,5],[0,8],[-2,10],[2,1]]){ const q=add(add(hip,up,h),perp,k); R(q[0],q[1],1,1,'#ff4f7b'); } }
+  if(o.fofo){ const b=add(hip,up,4); disc(b[0],b[1],4,OF.c); }
   // tirantes y hombros de piel
   const SW=IS_M?4:5.5; const ls=add(sb,perp,-SW), rs=add(sb,perp,SW);
-  if(!IS_M){ const c1=add(sb,down,2.5); line(c1[0]-perp[0]*4.5,c1[1]-perp[1]*4.5,c1[0]+perp[0]*4.5,c1[1]+perp[1]*4.5,5,SHIRT);
-    const pc=add(c1,down,2.5); for(const k of [-2.5,-1.5,1.5,2.5]){ const q=add(pc,perp,k); R(q[0],q[1],1,1,SHIRTD); } const ab=add(hip,up,4); R(ab[0],ab[1],1,1,SHIRTD); }
+  if(!IS_M){ const c1=add(sb,down,2.5); line(c1[0]-perp[0]*4.5,c1[1]-perp[1]*4.5,c1[0]+perp[0]*4.5,c1[1]+perp[1]*4.5,5,OF.c);
+    const pc=add(c1,down,2.5); for(const k of [-2.5,-1.5,1.5,2.5]){ const q=add(pc,perp,k); R(q[0],q[1],1,1,OF.d); } const ab=add(hip,up,4); R(ab[0],ab[1],1,1,OF.d); }
   R(ls[0]-1.5,ls[1]-1.5,3,3,skin); R(rs[0]-1.5,rs[1]-1.5,3,3,skin);
   const neck=add(hip,up,14*L); line(sb[0],sb[1],neck[0],neck[1],IS_M?3:4,skin);
   if(o.dirty){ for(const [a,b] of [[-2,4],[1,7],[2,2],[-1,9]]){ const q=add(add(hip,up,b),perp,a); R(q[0],q[1],1,1,'#8b6a43'); } }
@@ -337,9 +345,83 @@ function drawGuy(p, o){
   if(o.dirty){ // moscas
     for(let i=0;i<2;i++){ const a=o.time/300+i*3; R(head[0]+Math.cos(a)*9, head[1]-4+Math.sin(a*1.3)*5,1,1,'#222'); }
   }
+  drawAcc(P, head, hip, up, perp, sb);
   SX=1;
   return {head, hip};
 }
+
+
+// ====================== ARMARIO ======================
+const WARDROBE = {
+  b_tirantes:{n:'Camiseta de tirantes', who:'b', slot:'top', price:0, c:'#ffffff', d:'#d8d8e8'},
+  b_neopreno:{n:'Neopreno de surf', who:'b', slot:'top', price:6, c:'#26262e', d:'#3d3d4a', s:'#26262e'},
+  b_maillot:{n:'Maillot de danza', who:'b', slot:'top', price:8, c:'#8e5bd6', d:'#6f43b3', s:'#8e5bd6'},
+  b_hawaiana:{n:'Camisa hawaiana', who:'b', slot:'top', price:10, c:'#ff9f43', d:'#e07f22', pat:'dots'},
+  m_deportiva:{n:'Camiseta deportiva', who:'m', slot:'top', price:0, c:'#ff7a59', d:'#e0583a'},
+  m_futbol:{n:'Camiseta de fútbol verdiblanca', who:'m', slot:'top', price:6, c:'#1f9d55', d:'#177a42', pat:'stripes'},
+  m_bici:{n:'Maillot de bici', who:'m', slot:'top', price:8, c:'#ffd23f', d:'#e0b020', s:'#222228'},
+  m_cuero:{n:'Chupa de cuero de fiesta', who:'m', slot:'top', price:12, c:'#2b2228', d:'#45383f'},
+  gafas:{n:'Gafas de sol', who:'both', slot:'face', price:4},
+  gorra:{n:'Gorra', who:'both', slot:'head', price:5},
+  cinta:{n:'Cinta de pelo', who:'b', slot:'head', price:4},
+  gorro:{n:'Gorro de lana', who:'b', slot:'head', price:6},
+  corona:{n:'Corona de flores', who:'b', slot:'head', price:8},
+  conchas:{n:'Collar de conchas', who:'b', slot:'neck', price:5},
+  casco:{n:'Casco de bici', who:'m', slot:'head', price:6},
+  bufanda:{n:'Bufanda de fútbol', who:'m', slot:'neck', price:6},
+  pendientes:{n:'Pendientes de aro', who:'m', slot:'face', price:5},
+};
+const SLOT_NAMES={top:'Ropa', head:'Cabeza', face:'Cara', neck:'Cuello'};
+function ensureWardrobe(){
+  const def = IS_M?'m_deportiva':'b_tirantes';
+  if(!S.owned) S.owned=[def];
+  if(!S.outfit) S.outfit={top:def};
+  if(typeof S.stars!=='number') S.stars=5;
+}
+function outfitColors(){
+  const it = WARDROBE[(S.outfit&&S.outfit.top)||(IS_M?'m_deportiva':'b_tirantes')];
+  return {c:it.c, d:it.d, s:it.s||SHORTS, pat:it.pat};
+}
+function drawAcc(P, head, hip, up, perp, sb){
+  const o=S.outfit||{};
+  const cap=(col)=>{ for(let ly=-7;ly<=-3;ly++) for(let lx=-6;lx<=6;lx++){ if(lx*lx+(ly+1)*(ly+1)<=40){ const q=P(lx,ly); R(q[0],q[1],1,1,col); } } };
+  if(o.head==='gorra'){ cap(IS_M?'#1f9d55':'#e2463f'); for(let lx=-1;lx<=7;lx++){ const q=P(lx,-3); R(q[0],q[1],1,1,'#333'); } }
+  if(o.head==='casco'){ cap('#58c8ff'); for(let lx=-5;lx<=5;lx+=2){ const q=P(lx,-6); R(q[0],q[1],1,1,'#ffffff'); } }
+  if(o.head==='gorro'){ cap('#ff6f9f'); const q=P(0,-8); R(q[0]-1,q[1]-1,3,3,'#ffffff'); }
+  if(o.head==='cinta'){ for(let lx=-6;lx<=6;lx++){ const q=P(lx,-3); R(q[0],q[1],1,1,'#ff6f9f'); } }
+  if(o.head==='corona'){ const cs=['#ff9fd0','#ffe066','#ff4f7b','#9be3a8']; for(let lx=-6;lx<=6;lx+=2){ const q=P(lx,-4.5); R(q[0],q[1],2,2,cs[(lx+6)/2%4]); } }
+  if(o.face==='gafas'){ for(const ex of [-2,2]){ const q=P(ex,0); R(q[0]-1,q[1]-0.5,3,2,'#1b1b22'); } const br=P(0,0); R(br[0],br[1],1,1,'#1b1b22'); }
+  if(o.face==='pendientes'){ for(const ex of [-4.5,4.5]){ const q=P(ex,2); R(q[0],q[1],1,2,'#ffd23f'); } }
+  const nk=add(sb,up,0.5);
+  if(o.neck==='conchas'){ for(const k of [-3,-1.5,0,1.5,3]){ const q=add(add(nk,perp,k),up,-Math.abs(k)*0.3); R(q[0],q[1],1,1,k===0?'#ffc7a8':'#fff3dc'); } }
+  if(o.neck==='bufanda'){ for(let k=-4;k<=4;k++){ const q=add(nk,perp,k); R(q[0],q[1]-1,1,2,(k+4)%2?'#ffffff':'#1f9d55'); } const t2=add(add(nk,perp,3),up,-3); R(t2[0],t2[1],2,4,'#1f9d55'); }
+}
+function showCloset(){
+  ensureWardrobe();
+  const mine = Object.entries(WARDROBE).filter(([k,it])=>it.who==='both'||it.who===(IS_M?'m':'b'));
+  const groups = ['top','head','face','neck'].map(slot=>{
+    const items = mine.filter(([k,it])=>it.slot===slot);
+    if(!items.length) return '';
+    const rows = items.map(([k,it])=>{
+      const owned=S.owned.includes(k), on=S.outfit[slot]===k;
+      const btn = on ? (slot==='top'?'<button disabled>✓ Puesto</button>':`<button data-off="${slot}">Quitar</button>`)
+        : owned ? `<button data-wear="${k}">Ponérselo</button>`
+        : `<button data-buy="${k}" ${S.stars<it.price?'disabled':''}>🔒 ⭐${it.price}</button>`;
+      return `<div class="ward"><span>${it.n}</span>${btn}</div>`;
+    }).join('');
+    return `<h3>${SLOT_NAMES[slot]}</h3>${rows}`;
+  }).join('');
+  modal(`<h2>👕 Armario ${IS_M?'de María':'del Bailarín'}</h2>
+    <p>Tienes <b>⭐ ${S.stars}</b> estrellas. Se ganan con los minijuegos, las excursiones, los regalos y los mimos.</p>
+    ${groups}
+    <div class="opts"><button data-x>Cerrar</button></div>`);
+  const c=$('card');
+  c.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{ const k=b.dataset.buy, it=WARDROBE[k]; if(S.stars<it.price) return; S.stars-=it.price; S.owned.push(k); S.outfit[it.slot]=k; jingle(true); save(); showCloset(); say(IS_M?pick(['¡Me encanta! Ahora sí que voy a triunfar en el bar.','Estreno modelito. Ponme una birra para celebrarlo.']):pick(['¡Nuevo vestuario! Siento una coreografía nueva dentro.','Con esto voy a hacer llorar a todo Santoña.'])); });
+  c.querySelectorAll('[data-wear]').forEach(b=>b.onclick=()=>{ const k=b.dataset.wear; S.outfit[WARDROBE[k].slot]=k; beep(800,.05); save(); showCloset(); });
+  c.querySelectorAll('[data-off]').forEach(b=>b.onclick=()=>{ delete S.outfit[b.dataset.off]; beep(500,.05); save(); showCloset(); });
+  c.querySelector('[data-x]').onclick=closeModal;
+}
+function addStars(n){ ensureWardrobe(); S.stars+=n; const el=$('stars'); if(el) el.textContent='⭐ '+S.stars; }
 
 // ---- escenarios ----
 function isNight(){ const h=new Date().getHours(); return h<8 || h>=21; }
@@ -593,6 +675,7 @@ function updateBars(){
   const days=Math.floor((Date.now()-S.born)/86400000);
   { const d=new Date(); const fecha=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}); const hora=d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
     $('clock').textContent = (isNight()?'🌙 ':'☀️ ')+fecha+' · '+hora; }
+  if(typeof S.stars==='number') $('stars').textContent='⭐ '+S.stars;
   $('sub').textContent = S.mode==='over' ? 'game over' : `${IS_M?'la mascota del Bailarín':'la mascota de María'} · día ${days+1}`;
   $('sleepLbl').textContent = S.sleeping ? 'Despertar' : 'Dormir';
   const wine = S.mode==='wine';
@@ -603,9 +686,9 @@ function updateBars(){
   document.querySelectorAll('#menu button').forEach(b=>{
     const a=b.dataset.a;
     let dis = !!anim || !!game || S.mode==='over';
-    if(wine && !['eat','shower','surf','status','help'].includes(a)) dis=true;
-    if(S.sleeping && !['sleep','status','help','bed'].includes(a)) dis=true;
-    if(['status','help'].includes(a) && !game && !anim) dis=false;
+    if(wine && !['eat','shower','surf','status','help','closet'].includes(a)) dis=true;
+    if(S.sleeping && !['sleep','status','help','bed','closet'].includes(a)) dis=true;
+    if(['status','help','closet'].includes(a) && !game && !anim) dis=false;
     b.disabled=dis;
   });
 }
@@ -661,11 +744,12 @@ const ACTIONS = {
     const left = 3*3600000 - (Date.now()-S.lastCuddle);
     if(left>0){ const m=Math.ceil(left/60000); say(`${IS_M?'Dame un respiro, que estoy molida...':'Dame un respiro, que soy artista...'} (vuelve en ${m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min'})`); return; }
     S.sleeping=false;
-    startAnim({type:'cuddle', dur:5200, onEnd(){ const s=S.stats; s.anemic=100; s.happy=clamp(s.happy+15); s.energy=clamp(s.energy+10); S.lastCuddle=Date.now();
+    startAnim({type:'cuddle', dur:5200, onEnd(){ const s=S.stats; s.anemic=100; s.happy=clamp(s.happy+15); s.energy=clamp(s.energy+10); S.lastCuddle=Date.now(); addStars(1);
       say(pick(IS_M?['Buenos días, Bailarín. Estado anémico al 100%. 🩸✨','Mejor que una bajada sin frenos. Y eso es mucho decir.','Ahora sí. Ponme una birra para celebrarlo.']:['Buenos días, María. Tengo el estado anémico al 100%. 🩸✨','Me siento como después de un estreno con ovación.','Esto ha sido mejor que una pieza de Pina Bausch. Y eso es mucho decir.'])); jingle(true); }});
     beep(440,.15,'sine');
   },
   status(){ showStatus(); },
+  closet(){ showCloset(); },
   help(){
     modal(IS_M?`<h2>Cómo cuidar a María</h2>
     <p>Sus barras bajan con el tiempo, también con la app cerrada. Al abrirla se calcula todo lo que ha pasado.</p>
@@ -673,7 +757,8 @@ const ACTIONS = {
     <p>🩹 Si se cae con la bici, a veces se rompe algo y lleva escayola unas horas.</p>
     <p>🍺 Si se queda sin comida, limpieza o forma física, acaba <b>de after en la calle con una birra caliente</b>. Tienes 24 h para rescatarla: duchándola, dándole de comer y llevándola en bici.</p>
     <p>📱 Si la tienes sana pero sin cariño (felicidad y estado anémico muy bajos durante 12 h), <b>se abre un Tinder</b>. GAME OVER.</p>
-    <p>🚐 De vez en cuando te propondrá planes por Cantabria. Si le dices que sí, os vais en furgoneta.</p>
+    <p>🚐 De vez en cuando te propondrá planes por Cantabria y fútbol en el bar. Si le dices que sí, os vais.</p>
+    <p>⭐ Gana estrellas con los minijuegos, las excursiones, los regalos y los mimos, y desbloquea ropa y accesorios en el <b>Armario</b>.</p>
     <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
     <div class="opts"><button data-x>¡Entendido!</button><button data-sw>Cambiar de personaje</button></div>`:`<h2>Cómo cuidar al Bailarín</h2>
     <p>Sus barras bajan con el tiempo, también con la app cerrada.</p>
@@ -681,6 +766,7 @@ const ACTIONS = {
     <p>🍷 Si se queda sin comida, limpieza o forma física, acaba <b>bebiendo vino en la calle</b>. Tienes 24 h para rescatarlo: duchándolo, dándole de comer y llevándolo a surfear.</p>
     <p>📱 Si lo tienes sano pero sin cariño (felicidad y estado anémico muy bajos durante 12 h), <b>se abre un Tinder</b>. GAME OVER.</p>
     <p>🎁 Si está bien cuidado, te deja regalitos en el suelo. ¡Tócalos!</p>
+    <p>⭐ Gana estrellas con los minijuegos, las excursiones, los regalos y los mimos, y desbloquea ropa y accesorios en el <b>Armario</b>.</p>
     <p>🚐 De vez en cuando te propondrá una excursión por Cantabria. Si le dices que sí, os vais en furgoneta.</p>
     <p>📲 Ábrelo siempre desde el mismo enlace en Safari. Si quieres, añádelo a la pantalla de inicio (Compartir → Añadir a pantalla de inicio).</p>
     <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
@@ -715,7 +801,7 @@ function gameLabel(){ $('gameLbl').textContent = ({surf:'🏄 Ola',bike:'🚵 Cu
 function gameTap(){
   if(!game || game.state!=='aim') return;
   const hit = game.pos>=game.zs && game.pos<=game.zs+game.zw;
-  if(hit){ game.hits++; beep(880,.07); } else beep(200,.12);
+  if(hit){ game.hits++; addStars(1); beep(880,.07); } else beep(200,.12);
   game.state='show'; game.onRound(hit, game.round);
   setTimeout(()=>{ if(!game) return; game.round++; if(game.round>=game.rounds){ const g=game; game=null; $('game').classList.remove('show'); g.onFinish(g.hits); updateBars(); }
     else { game.state='aim'; game.speed*=1.12; newZone(); gameLabel(); } }, 1100);
@@ -812,10 +898,14 @@ if(IS_M){
   for(const t of TRIPS){ const m=TRIPS_M[t.id]; if(m){ t.ask=m[0]; t.fact=m[1]; } }
   TRIPS.push(
    {id:'bicipicos', short:'Liébana', name:'Bajada en bici por Liébana', scene:'biketrip', ask:'Bailarín, ¿hacemos una bajada en bici por Liébana? Te espero abajo... o en urgencias.', fact:'Bajada en bici por Liébana, con los Picos de Europa al fondo. Frenar es de cobardes. (Frena, Bailarín.)', fx:{happy:25,fit:20,energy:-20,clean:-15}, risk:true},
+   {id:'futbol', short:'el bar', name:'Fútbol en el bar', scene:'bar', ask:'¡Hay fútbol! ¿Nos vamos al bar a verlo? Ponme una birra.', fact:'En el bar ya me conoce todo el mundo: en la primera parte saludo a cada mesa y en la segunda canto con la peña. Carisma, Bailarín.', fx:{happy:28,food:10,energy:-10}},
    {id:'fiesta', short:'Santoña', name:'Fiesta con micro en Santoña', scene:'party', ask:'¡Esta noche hay fiesta en Santoña! ¿Vamos? Ya tengo el micro reservado.', fact:'Fiesta en Santoña: luces, música y yo con el micro. Ponme una birra, que voy a cantar.', fx:{happy:30,energy:-20,fit:2}});
 }
 function proposeTrip(){
-  const pool=TRIPS.filter(t=>t.id!==S.lastTripId), t=pick(pool), b=$('bubble');
+  const pool=TRIPS.filter(t=>t.id!==S.lastTripId), b=$('bubble');
+  const d=new Date(), finde=(d.getDay()===0||d.getDay()===6) && d.getHours()>=15 && d.getHours()<23;
+  const fut=TRIPS.find(x=>x.id==='futbol');
+  const t = (IS_M && fut && S.lastTripId!=='futbol' && Math.random()<(finde?0.6:0.3)) ? fut : pick(pool);
   b.textContent='';
   const p=document.createElement('div'); p.textContent='🚐 '+t.ask; b.appendChild(p);
   const row=document.createElement('div'); row.className='brow';
@@ -833,7 +923,7 @@ function startTrip(t){
   flourish=null; jingle(true);
   startAnim({type:'trip', trip:t, dur:13000, onEnd(){
     const s=S.stats; for(const k in t.fx) s[k]=clamp(s[k]+t.fx[k]);
-    S.trips[t.id]=(S.trips[t.id]||0)+1; S.lastTrip=Date.now(); S.lastTripId=t.id; guyX=48;
+    S.trips[t.id]=(S.trips[t.id]||0)+1; addStars(3); S.lastTrip=Date.now(); S.lastTripId=t.id; guyX=48;
     if(t.risk && Math.random()<0.3 && !(S.injuredUntil>Date.now())){ S.injuredUntil=Date.now()+6*3600000; say('Bueno... me he roto algo en la bajada. Pero ha merecido la pena. 🩹',7000); return; }
     say(pick(IS_M?['¡Qué día! Cantabria infinita. Gracias por venir conmigo, Bailarín.','Vuelvo a casa con barro, moratones y ganas de más.','Te he guardado una postal en tu colección. Mírala en Estado.']:['¡Qué día! Cantabria infinita. Gracias por venir conmigo, María.','Vuelvo a casa con arena, recuerdos y una coreografía nueva.','Te he guardado una postal en tu colección. Mírala en Estado.']),6000);
   }});
@@ -942,6 +1032,16 @@ function renderPlace(now,e,t,look){
     sceneSlope(now); const bx=40, by=Math.round(58+bx*0.22-4);
     drawBike(bx,by,0.22,'#e2463f'); drawGuy(POSES.bikeP,{...lk, x:bx-2, y:by-10, face:'o', swing:-5});
     label(t.name);
+  } else if(t.scene==='bar'){
+    rect(0,0,W,96,'#7a4b2a'); for(let x=0;x<W;x+=8) rect(x,0,1,64,'#6a3f22');
+    rect(30,6,40,26,'#222'); rect(32,8,36,22,'#3fa34d'); rect(49,8,1,22,'#ffffff'); disc(50,19,3,'#3fa34d'); R(48+Math.round(Math.sin(now/300)*12),12+Math.round(Math.cos(now/410)*6),2,2,'#ffffff');
+    for(let i=0;i<3;i++){ R(36+i*4,12+i*5,1,2,'#e2463f'); R(58+i*3,10+i*6,1,2,'#58c8ff'); }
+    rect(0,64,W,32,'#4a2e1a'); rect(0,64,W,3,'#a8703f');
+    const gol = Math.floor(e/2200)%2===1;
+    drawGuy(gol?POSES.cielo:POSES.stand,{...lk, x:48, y:GROUND-20, face:gol?'o':'smile', can:true, swing:gol?Math.sin(now/90)*3:0});
+    for(const [x,c] of [[12,'#2b5d8a'],[24,'#e2463f'],[72,'#1f9d55'],[84,'#ffd23f']]){ const j=gol?Math.round(Math.sin(now/90+x)*2):0; disc(x,70-j,4,c); disc(x,62-j,3,'#e9ad7e'); }
+    if(gol){ txt('¡GOOOOL!',48,40,'#ffe066',10); for(let i=0;i<3;i++) heart(20+i*28,46+((now/40+i*9)%10),'#ff4f7b'); }
+    label(t.name);
   } else if(t.scene==='party'){
     sceneParty(now); const mv=['cielo','salto','grito','arabesque'][Math.floor(e/700)%4];
     drawGuy(POSES[mv],{...lk, x:48, y:GROUND-16, mic:true, swing:Math.sin(now/110)*4});
@@ -977,7 +1077,7 @@ $('screen').addEventListener('pointerdown',e=>{
   }
 });
 function collectGift(){
-  const g=S.floorGift; S.floorGift=null; S.gifts[g.type]=(S.gifts[g.type]||0)+1; jingle(true);
+  const g=S.floorGift; S.floorGift=null; S.gifts[g.type]=(S.gifts[g.type]||0)+1; addStars(1); jingle(true);
   if(g.type==='nota'){ const n=pick(NOTES); S.notes.push(n); if(S.notes.length>30) S.notes.shift(); modal(`<h2>💌 Una nota para ti</h2><p class="note">${n}</p><p style="text-align:right">— ${IS_M?'María':'el Bailarín'}</p><div class="opts"><button data-x>Guardar en mi colección</button></div>`); $('card').querySelector('[data-x]').onclick=closeModal; }
   else say(`¡Un regalo para ti, ${YOU}! ${GIFT_TYPES[g.type].e} (lo he guardado en tu colección)`);
   save();
@@ -1094,7 +1194,12 @@ if(IS_M){
     'El Cantábrico está helado. Perfecto para despertarse.','Si me ves quieta, estoy pensando en la siguiente locura.',
     'Hoy no me rompo nada. Prometido. (No prometo nada.)','¿Karaoke esta noche? Yo ya he calentado la voz.',
     'En Santoña seguro que hay fiesta. Y donde hay fiesta, hay micro.','Bailarín, ¿me sujetas la birra? Voy a hacer una cosa.',
-    'Bonito y seguro no puede ser. Elijo bonito.','Bailarín, ¿subimos el Buciero corriendo? El último paga las birras.');
+    'Bonito y seguro no puede ser. Elijo bonito.','Bailarín, ¿subimos el Buciero corriendo? El último paga las birras.',
+    'Entro en un bar y en cinco minutos tengo diez amigos nuevos. Es un don.','¿Carisma? Yo lo llamo ser María.',
+    'Hoy hay partido. Me pongo la camiseta y al bar.','¿Fútbol? Siempre. ¿En el bar? Por supuesto.',
+    'Yo veo el partido, comento la jugada y pido otra ronda. Multitarea.','Cuando marca mi equipo abrazo a desconocidos. Y ellos encantados.',
+    'El camarero ya sabe lo que quiero: una birra y que suba el volumen de la tele.','¡Eso es fuera de juego! Bueno, no lo sé, pero lo grito igual.',
+    'Bailarín, en el descanso te enseño a cantar el himno del bar.','Me hago amiga de la peña contraria en la primera parte. En la segunda, ya son de los nuestros.');
   Object.assign(NEED,{
     food:['Tengo hambre. Ponme algo... y una birra.','Me comería un bocata de lo que sea.'],
     energy:['Estoy reventada. Hasta el micro pesa.','Necesito dormir. Mañana hay bajada.'],
@@ -1146,6 +1251,8 @@ window.addEventListener('pagehide',save);
 
 // inicio
 function goPet(p){ try{ save(); localStorage.setItem('el-bailarin-last-pet', p); }catch(e){} location.hash=p; location.reload(); }
+ensureWardrobe(); $('stars').textContent='⭐ '+S.stars;
+$('helpBtn').addEventListener('click',()=>{ if(!anim&&!game) ACTIONS.help(); });
 $('swap').textContent = IS_M ? '🩰 Cambiar al Bailarín' : '🚵‍♀️ Cambiar a María';
 $('swap').addEventListener('click',()=>goPet(IS_M?'bailarin':'maria'));
 var lockModal=false;
