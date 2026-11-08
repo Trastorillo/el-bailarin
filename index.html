@@ -274,7 +274,9 @@ function drawGuy(p, o){
   for(let i=0;i<=HL;i++){
     const c=add(add(head,down,i), perp, swing*i/10 + (o.wild?Math.sin(i*1.7)*1.2:0));
     const wdt = 6 - (i>HL-3?(i-(HL-3)):0)*.6;
-    line(c[0]-perp[0]*wdt, c[1]-perp[1]*wdt, c[0]+perp[0]*wdt, c[1]+perp[1]*wdt, 2, i>HL*0.65?HAIRD:HAIR);
+    const hcol=i>HL*0.65?HAIRD:HAIR;
+    if(IS_M && i>=2){ for(const sg of [-1,1]){ const a0=add(c,perp,sg*3.6), a1=add(c,perp,sg*wdt); line(a0[0],a0[1],a1[0],a1[1],2,hcol); } }
+    else line(c[0]-perp[0]*wdt, c[1]-perp[1]*wdt, c[0]+perp[0]*wdt, c[1]+perp[1]*wdt, 2, hcol);
   }
   // piernas
   const lh=add(hip,perp,-2.5), rh=add(hip,perp,2.5);
@@ -282,10 +284,10 @@ function drawGuy(p, o){
   // nota: ángulo del mundo = -t ± ...; dv usa 0 = abajo
   for(const [h0,a1,a2] of legs){
     const d1=dv(a1), knee=add(h0,d1,8*L), d2=dv(a1+a2), foot=add(knee,d2,8*L);
-    line(h0[0],h0[1],knee[0],knee[1],IS_M?3:4,skin);
-    line(knee[0],knee[1],foot[0],foot[1],3,skin);
+    line(h0[0],h0[1],knee[0],knee[1],IS_M?3:4,OF.p||skin);
+    line(knee[0],knee[1],foot[0],foot[1],3,OF.p||skin);
     line(h0[0],h0[1],h0[0]+d1[0]*5,h0[1]+d1[1]*5,5,OF.s);
-    R(foot[0]-1.5,foot[1]-1,3,2,skinD);
+    R(foot[0]-1.5,foot[1]-1,3,2,OF.p?'#f4f4f4':skinD);
   }
   // pantalón
   line(lh[0],lh[1],rh[0],rh[1],6,OF.s);
@@ -293,13 +295,15 @@ function drawGuy(p, o){
   const tw = IS_M?(o.fofo?9:7):(o.fofo?11:8);
   line(hip[0]+up[0]*1,hip[1]+up[1]*1, sb[0],sb[1], tw, OF.c);
   if(OF.pat==='stripes'){ for(const k of [-2,0,2]){ const a0=add(add(hip,up,1),perp,k), a1=add(sb,perp,k); line(a0[0],a0[1],a1[0],a1[1],1,'#ffffff'); } }
+  if(OF.pat==='zip'){ const a0=add(hip,up,1), a1=add(sb,up,1); line(a0[0],a0[1],a1[0],a1[1],1,'#ffffff'); }
+  if(OF.pat==='open'){ const a0=add(hip,up,1.5), a1=add(sb,up,0.5); line(a0[0],a0[1],a1[0],a1[1],3,'#f4f4f4'); }
   if(OF.pat==='dots'){ for(const [k,h] of [[-2,3],[2,5],[0,8],[-2,10],[2,1]]){ const q=add(add(hip,up,h),perp,k); R(q[0],q[1],1,1,'#ff4f7b'); } }
   if(o.fofo){ const b=add(hip,up,4); disc(b[0],b[1],4,OF.c); }
   // tirantes y hombros de piel
   const SW=IS_M?4:5.5; const ls=add(sb,perp,-SW), rs=add(sb,perp,SW);
   if(!IS_M){ const c1=add(sb,down,2.5); line(c1[0]-perp[0]*4.5,c1[1]-perp[1]*4.5,c1[0]+perp[0]*4.5,c1[1]+perp[1]*4.5,5,OF.c);
     const pc=add(c1,down,2.5); for(const k of [-2.5,-1.5,1.5,2.5]){ const q=add(pc,perp,k); R(q[0],q[1],1,1,OF.d); } const ab=add(hip,up,4); R(ab[0],ab[1],1,1,OF.d); }
-  R(ls[0]-1.5,ls[1]-1.5,3,3,skin); R(rs[0]-1.5,rs[1]-1.5,3,3,skin);
+  R(ls[0]-1.5,ls[1]-1.5,3,3,OF.sl||skin); R(rs[0]-1.5,rs[1]-1.5,3,3,OF.sl||skin);
   const neck=add(hip,up,14*L); line(sb[0],sb[1],neck[0],neck[1],IS_M?3:4,skin);
   if(o.dirty){ for(const [a,b] of [[-2,4],[1,7],[2,2],[-1,9]]){ const q=add(add(hip,up,b),perp,a); R(q[0],q[1],1,1,'#8b6a43'); } }
   // brazos
@@ -307,7 +311,8 @@ function drawGuy(p, o){
   // corrección: dv(0) = abajo. El "abajo" del cuerpo es -t... usamos ángulo del mundo directamente
   for(const [s0,a1,a2] of arms){
     const d1=dv(a1), el=add(s0,d1,7*L), d2=dv(a1+a2), hand=add(el,d2,6*L);
-    line(s0[0],s0[1],el[0],el[1],IS_M?3:4,skin); line(el[0],el[1],hand[0],hand[1],3,skin);
+    line(s0[0],s0[1],el[0],el[1],IS_M?3:4,OF.sl||skin); line(el[0],el[1],hand[0],hand[1],3,OF.sl||skin);
+    if(OF.pat==='zip'){ R(el[0],el[1],1,1,'#ffffff'); }
     R(hand[0]-1,hand[1]-1,2,2,skinD);
   }
   o.hand = add(add(rs,dv(-t+(p.ra||0)),7*L), dv(-t+(p.ra||0)+(p.re||0)),6*L);
@@ -315,8 +320,9 @@ function drawGuy(p, o){
   if(o.mic){ R(o.hand[0]-1,o.hand[1]-4,2,4,'#3b3b3b'); disc(o.hand[0],o.hand[1]-5,1,'#9a9aa8'); }
   if(o.can){ R(o.hand[0]-1,o.hand[1]-4,3,5,'#1f5f3a'); R(o.hand[0]-1,o.hand[1]-3,3,1,'#e8c35a'); }
   // cabeza: pelo, cara, flequillo
-  const hc=add(head,up,0.6);
-  disc(hc[0],hc[1],6,HAIR);
+  const hc=add(head,up,IS_M?1.6:0.6);
+  disc(hc[0],hc[1],IS_M?5:6,HAIR);
+  if(IS_M){ for(const sg of [-1,1]){ const q=add(add(head,perp,sg*4.6),down,0); line(q[0],q[1]-3,q[0],q[1]+3,2,HAIR); } }
   const fc=add(head,down,0.8);
   disc(fc[0],fc[1],4,skin);
   const P=(lx,ly)=>add(add(head,perp,lx),down,ly);
@@ -330,12 +336,13 @@ function drawGuy(p, o){
     const q=P(ex,0);
     if(eyesClosed) R(q[0]-0.5,q[1]+0.5,2,1,COL.pupil);
     else if(o.sleepy===1 || o.drunk){ R(q[0]-0.5,q[1]+0.5,2,1,EYE); R(q[0]-0.5,q[1],2,1,skinD); }
-    else { R(q[0]-0.5,q[1],2,2,EYE); R(q[0]+0.5,q[1],1,1,COL.pupil); R(q[0]-0.5,q[1]-1,2,1,HAIRD); }
+    else { R(q[0]-0.5,q[1],2,2,EYE); R(q[0]+0.5,q[1],1,1,COL.pupil); R(q[0]-0.5,q[1]-1,2,1,HAIRD); if(IS_M){ const l=P(ex+(ex>0?1.5:-1.5),-0.6); R(l[0],l[1],1,1,'#1a1418'); } }
     if(o.pale){ const b=P(ex,1.8); R(b[0]-0.5,b[1],2,1,'#a98fb5'); }
     if(o.blush){ const b=P(ex*1.6,1.6); R(b[0],b[1],1,1,COL.blush); }
   }
   // boca
   const m=P(0,2.8);
+  if(IS_M){ COL.mouth='#c2415a'; } 
   if(face==='smile'||face==='happyclosed'){ R(m[0]-1,m[1],1,1,COL.mouth); R(m[0],m[1]+1,1,1,COL.mouth); R(m[0]+1,m[1],1,1,COL.mouth); }
   else if(face==='sad'){ R(m[0]-1,m[1]+1,1,1,COL.mouth); R(m[0],m[1],1,1,COL.mouth); R(m[0]+1,m[1]+1,1,1,COL.mouth); }
   else if(face==='o'){ R(m[0]-0.5,m[1],2,2,COL.mouth); }
@@ -354,13 +361,15 @@ function drawGuy(p, o){
 // ====================== ARMARIO ======================
 const WARDROBE = {
   b_tirantes:{n:'Camiseta de tirantes', who:'b', slot:'top', price:0, c:'#ffffff', d:'#d8d8e8'},
-  b_neopreno:{n:'Neopreno de surf', who:'b', slot:'top', price:6, c:'#26262e', d:'#3d3d4a', s:'#26262e'},
-  b_maillot:{n:'Maillot de danza', who:'b', slot:'top', price:8, c:'#8e5bd6', d:'#6f43b3', s:'#8e5bd6'},
+  b_neopreno:{n:'Neopreno de surf', who:'b', slot:'top', price:6, c:'#26262e', d:'#3d3d4a', s:'#26262e', sl:'#26262e', p:'#26262e'},
+  b_maillot:{n:'Maillot de danza', who:'b', slot:'top', price:8, c:'#8e5bd6', d:'#6f43b3', s:'#8e5bd6', p:'#8e5bd6'},
   b_hawaiana:{n:'Camisa hawaiana', who:'b', slot:'top', price:10, c:'#ff9f43', d:'#e07f22', pat:'dots'},
-  m_deportiva:{n:'Camiseta deportiva', who:'m', slot:'top', price:0, c:'#ff7a59', d:'#e0583a'},
-  m_futbol:{n:'Camiseta de fútbol verdiblanca', who:'m', slot:'top', price:6, c:'#1f9d55', d:'#177a42', pat:'stripes'},
-  m_bici:{n:'Maillot de bici', who:'m', slot:'top', price:8, c:'#ffd23f', d:'#e0b020', s:'#222228'},
-  m_cuero:{n:'Chupa de cuero de fiesta', who:'m', slot:'top', price:12, c:'#2b2228', d:'#45383f'},
+  m_deportiva:{n:'Top deportivo y mallas', who:'m', slot:'top', price:0, c:'#ff7a59', d:'#e0583a', s:'#2b2b38', p:'#2b2b38'},
+  m_chandal:{n:'Chándal azul', who:'m', slot:'top', price:5, c:'#3b4fd6', d:'#2d3db0', s:'#3b4fd6', sl:'#3b4fd6', p:'#3b4fd6', pat:'zip'},
+  m_chandal2:{n:'Chándal retro granate', who:'m', slot:'top', price:7, c:'#9b2d4a', d:'#7a2039', s:'#9b2d4a', sl:'#9b2d4a', p:'#9b2d4a', pat:'zip'},
+  m_cuero:{n:'Cazadora de cuero y vaqueros', who:'m', slot:'top', price:10, c:'#2b2228', d:'#45383f', s:'#3d5a8a', sl:'#2b2228', p:'#3d5a8a', pat:'open'},
+  m_futbol:{n:'Camiseta de fútbol verdiblanca', who:'m', slot:'top', price:6, c:'#1f9d55', d:'#177a42', pat:'stripes', s:'#222228', p:'#222228'},
+  m_bici:{n:'Cortavientos de bici y mallas', who:'m', slot:'top', price:8, c:'#ffd23f', d:'#e0b020', s:'#222228', sl:'#ffd23f', p:'#222228'},
   gafas:{n:'Gafas de sol', who:'both', slot:'face', price:4},
   gorra:{n:'Gorra', who:'both', slot:'head', price:5},
   cinta:{n:'Cinta de pelo', who:'b', slot:'head', price:4},
@@ -380,7 +389,7 @@ function ensureWardrobe(){
 }
 function outfitColors(){
   const it = WARDROBE[(S.outfit&&S.outfit.top)||(IS_M?'m_deportiva':'b_tirantes')];
-  return {c:it.c, d:it.d, s:it.s||SHORTS, pat:it.pat};
+  return {c:it.c, d:it.d, s:it.s||SHORTS, pat:it.pat, sl:it.sl, p:it.p};
 }
 function drawAcc(P, head, hip, up, perp, sb){
   const o=S.outfit||{};
