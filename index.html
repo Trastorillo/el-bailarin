@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#ff8fb1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="El Bailarín">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>El Bailarín</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --shell:#fff1c9; --shell-dark:#f2c46d; --ink:#3b2340; --pink:#ff6f9f; --screen:#c9e7c2;
+  --btn:#ffd2e0; --btn-dark:#e78aac; --sea:#3fa7c9;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:"Pixelify Sans",ui-monospace,monospace;color:var(--ink);
+  background:linear-gradient(180deg,#ffcf8f 0%,#ff9fb8 45%,#7fd0e8 100%) fixed;
+  display:flex;justify-content:center;align-items:flex-start;
+  padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  user-select:none;-webkit-user-select:none;overscroll-behavior:none;
+}
+.egg{
+  width:min(100%,420px);background:var(--shell);
+  border-radius:46% 46% 34% 34% / 22% 22% 16% 16%;
+  box-shadow:inset 0 -10px 0 var(--shell-dark), 0 8px 0 rgba(59,35,64,.25), 0 14px 30px rgba(59,35,64,.25);
+  padding:26px 20px 30px;position:relative;
+  background-image:radial-gradient(circle at 20% 15%,rgba(255,111,159,.18) 0 8px,transparent 9px),
+                   radial-gradient(circle at 80% 22%,rgba(63,167,201,.18) 0 10px,transparent 11px),
+                   radial-gradient(circle at 12% 70%,rgba(63,167,201,.15) 0 7px,transparent 8px),
+                   radial-gradient(circle at 88% 78%,rgba(255,111,159,.15) 0 9px,transparent 10px);
+}
+h1{margin:0 0 6px;text-align:center;font-size:24px;letter-spacing:2px;color:var(--pink);
+   text-shadow:2px 2px 0 var(--ink)}
+.sub{text-align:center;font-size:13px;margin-bottom:8px;opacity:.75}
+.clock{text-align:center;font-size:16px;font-weight:700;margin:-2px 0 8px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.bars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;margin:0 6px 10px}
+.bar{display:flex;align-items:center;gap:4px;font-size:12px}
+.bar .ic{width:18px;text-align:center;font-size:14px}
+.bar .tr{flex:1;height:9px;background:#fff;border:2px solid var(--ink);position:relative}
+.bar .fi{position:absolute;left:0;top:0;bottom:0;background:#5cc96b;transition:width .4s}
+.bar .fi.mid{background:#f5c542}.bar .fi.low{background:#ef5b5b}
+.screenwrap{position:relative;border:4px solid var(--ink);border-radius:10px;overflow:hidden;
+  box-shadow:inset 0 0 0 3px #8fb38a;background:var(--screen);touch-action:manipulation}
+canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image-rendering:crisp-edges}
+.bubble{position:absolute;left:8px;right:8px;top:8px;background:#fff;border:3px solid var(--ink);
+  border-radius:8px;padding:6px 8px;font-size:15px;line-height:1.2;display:none;z-index:3;
+  box-shadow:3px 3px 0 rgba(59,35,64,.3)}
+.bubble.show{display:block;animation:pop .2s}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.bubble .brow{display:flex;gap:8px;margin-top:6px}
+.bubble .brow button{flex:1;font-family:inherit;font-size:15px;border:3px solid var(--ink);border-radius:8px;padding:6px;background:var(--btn);color:var(--ink);box-shadow:0 3px 0 var(--btn-dark)}
+.bubble .brow button:first-child{background:#9be3a8;box-shadow:0 3px 0 #4fae62}
+.game{position:absolute;left:8px;right:8px;bottom:8px;z-index:4;display:none}
+.game.show{display:block}
+.game .lbl{background:rgba(255,255,255,.9);border:3px solid var(--ink);border-radius:6px;padding:3px 6px;
+  font-size:14px;text-align:center;margin-bottom:5px}
+.track{height:22px;background:#fff;border:3px solid var(--ink);position:relative;border-radius:4px}
+.zone{position:absolute;top:0;bottom:0;background:#7be08a}
+.cursor{position:absolute;top:-6px;bottom:-6px;width:6px;background:var(--pink);border:2px solid var(--ink);margin-left:-3px}
+.rescue{display:none;margin-top:8px;background:#3b2340;color:#ffe9a8;border-radius:6px;padding:6px 8px;font-size:14px;text-align:center}
+.rescue.show{display:block}
+.menu{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.menu button{font-family:inherit;font-size:12px;color:var(--ink);background:var(--btn);border:3px solid var(--ink);
+  border-radius:12px;padding:6px 2px 5px;box-shadow:0 4px 0 var(--btn-dark);cursor:pointer;line-height:1.1}
+.menu button .e{display:block;font-size:22px;margin-bottom:2px}
+.menu button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--btn-dark)}
+.menu button:disabled{opacity:.35;filter:grayscale(1)}
+.modal{position:fixed;inset:0;background:rgba(59,35,64,.55);display:none;align-items:center;justify-content:center;
+  z-index:10;padding:16px}
+.modal.show{display:flex}
+.card{background:var(--shell);border:4px solid var(--ink);border-radius:14px;padding:16px;width:min(100%,380px);
+  max-height:85vh;overflow:auto;box-shadow:6px 6px 0 rgba(59,35,64,.4)}
+.card h2{margin:0 0 8px;color:var(--pink);text-shadow:1px 1px 0 var(--ink)}
+.card p{margin:6px 0;font-size:16px;line-height:1.3}
+.card .opts{display:grid;gap:8px;margin-top:10px}
+.card button{font-family:inherit;font-size:16px;background:var(--btn);border:3px solid var(--ink);border-radius:10px;
+  padding:9px;box-shadow:0 4px 0 var(--btn-dark);color:var(--ink);cursor:pointer}
+.card button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--btn-dark)}
+.st{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px;align-items:center;font-size:15px;margin:8px 0}
+.st .tr{height:10px;background:#fff;border:2px solid var(--ink);position:relative}
+.gifts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0;text-align:center;font-size:13px}
+.gifts div{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:4px}
+.gifts b{display:block;font-size:22px}
+.note{background:#fff;border:2px dashed var(--pink);border-radius:8px;padding:6px;font-size:14px;margin:4px 0}
+.over{text-align:center}
+.over .big{font-size:38px;color:#ef3b6b;text-shadow:3px 3px 0 var(--ink);margin:6px 0}
+.foot{text-align:center;font-size:11px;opacity:.6;margin-top:10px}
+</style>
+
+</head>
+<body>
+<div class="egg">
+  <h1>EL BAILARÍN</h1>
+  <div class="sub" id="sub">la mascota de María</div>
+  <div class="clock" id="clock"></div>
+  <div class="bars" id="bars"></div>
+  <div class="screenwrap" id="screen">
+    <canvas id="cv" width="96" height="96"></canvas>
+    <div class="bubble" id="bubble"></div>
+    <div class="game" id="game"><div class="lbl" id="gameLbl"></div><div class="track"><div class="zone" id="zone"></div><div class="cursor" id="cursor"></div></div></div>
+  </div>
+  <div class="rescue" id="rescue"></div>
+  <div class="menu" id="menu">
+    <button data-a="eat"><span class="e">🍜</span>Comer</button>
+    <button data-a="surf"><span class="e">🏄</span>Surfear</button>
+    <button data-a="dance"><span class="e">💃</span>Bailar</button>
+    <button data-a="sleep"><span class="e">😴</span><span id="sleepLbl">Dormir</span></button>
+    <button data-a="shower"><span class="e">🚿</span>Ducharse</button>
+    <button data-a="bed"><span class="e">❤️</span>Acostarse</button>
+    <button data-a="status"><span class="e">📋</span>Estado</button>
+    <button data-a="help"><span class="e">❔</span>Ayuda</button>
+  </div>
+  <div class="foot">Toca al Bailarín para darle mimos · se guarda solo</div>
+</div>
+<div class="modal" id="modal"><div class="card" id="card"></div></div>
+
+<script>
+(() => {
+'use strict';
+// ====================== ESTADO Y GUARDADO ======================
+const KEY = 'el-bailarin-maria-v1';
+const RATES = {food:12.5, energy:8.3, clean:7, happy:10, fit:4.2, anemic:4.2}; // puntos por hora
+const BARS = [
+  ['food','🍜','Hambre'],['energy','⚡','Energía'],['clean','🧼','Limpieza'],
+  ['happy','😊','Felicidad'],['fit','💪','Forma física'],['anemic','🩸','Estado anémico']
+];
+const GIFT_TYPES = {
+  chuche:{e:'🍬',n:'Chuches'}, concha:{e:'🐚',n:'Conchas'}, flor:{e:'🌸',n:'Flores'}, nota:{e:'💌',n:'Notas'}
+};
+const NOTES = [
+  'María, eres mi kinesfera favorita.',
+  'Si fueras una ola, te surfearía con respeto.',
+  'Hoy he bailado una pieza sobre ti. Duraba 40 minutos y lloraba todo el rato.',
+  'Gracias por no dejarme bebiendo vino en la calle. Te debo una contracción.',
+  'Eres más bonita que un atardecer en la playa después de un ensayo.',
+  'Pina Bausch estaría orgullosa de cómo me cuidas.',
+  'He escrito tu nombre en la arena con un pie en relevé.',
+  'Contigo hasta los pliés me salen bien.'
+];
+function fresh(keep){
+  const now = Date.now();
+  return {v:1, born:now, last:now, stats:{food:85,energy:85,clean:85,happy:85,fit:75,anemic:75},
+    mode:'ok', sleeping:false, wineHours:0, rescue:{eat:false,shower:false,surf:false}, lowLove:0,
+    lastCuddle:0, lastPat:0, gifts:(keep&&keep.gifts)||{}, notes:(keep&&keep.notes)||[], trips:(keep&&keep.trips)||{}, lastTrip:0, lastTripId:null, floorGift:null, giftTimer:0,
+    cause:null, introSeen:!!(keep&&keep.introSeen), generation:((keep&&keep.generation)||0)+1, deaths:(keep&&keep.deaths)||0};
+}
+function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.v===1) return s; }catch(e){} return null; }
+function save(){ try{ S.last = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+let S = load() || fresh();
+S.trips = S.trips || {}; S.lastTrip = S.lastTrip || 0;
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+
+const clamp = v => Math.max(0, Math.min(100, v));
+function healthy(){ const s=S.stats; return s.food>30 && s.clean>30 && s.fit>30; }
+
+function goWine(){
+  S.mode='wine'; S.sleeping=false; S.wineHours=0; S.rescue={eat:false,shower:false,surf:false};
+  S.floorGift=null;
+}
+function gameOver(cause){ S.mode='over'; S.cause=cause; S.sleeping=false; S.deaths=(S.deaths||0)+1; S.floorGift=null; }
+
+function step(h){ // h = horas
+  if(S.mode==='over') return;
+  if(S.mode==='wine'){ S.wineHours += h; if(S.wineHours>=24) gameOver('wine'); return; }
+  const s=S.stats, k = S.sleeping?0.5:1;
+  s.food-=RATES.food*h*k; s.clean-=RATES.clean*h*k; s.happy-=RATES.happy*h*k;
+  s.fit-=RATES.fit*h*k; s.anemic-=RATES.anemic*h*k;
+  if(S.sleeping){ s.energy+=25*h; if(s.energy>=100){ s.energy=100; S.sleeping=false; S.justWoke=true; } }
+  else { s.energy-=RATES.energy*h; if(s.energy<=0){ s.energy=0; S.sleeping=true; } }
+  for(const b of BARS) s[b[0]] = clamp(s[b[0]]);
+  if(s.food<=0 || s.clean<=0 || s.fit<=0){ goWine(); return; }
+  if(healthy() && s.happy<20 && s.anemic<20){ S.lowLove+=h; if(S.lowLove>=12){ gameOver('tinder'); return; } }
+  else S.lowLove=0;
+  const avg = BARS.reduce((a,b)=>a+s[b[0]],0)/6;
+  if(avg>55 && !S.floorGift && !S.sleeping){
+    S.giftTimer+=h;
+    if(S.giftTimer>=0.25){ S.giftTimer=0; spawnGift(); }
+  }
+}
+function spawnGift(){
+  const r=Math.random(), type = r<.35?'chuche':r<.6?'concha':r<.82?'flor':'nota';
+  S.floorGift={type, x: 12+Math.floor(Math.random()*70)};
+}
+
+// Ponerse al día con el tiempo que la app estuvo cerrada
+(function catchUp(){
+  const before = {mode:S.mode};
+  let hours = Math.min((Date.now()-S.last)/3600000, 24*30);
+  const dt = 1/60;
+  while(hours>0 && S.mode!=='over'){ const d=Math.min(dt,hours); step(d); hours-=d; }
+  S.welcome = before.mode!==S.mode ? S.mode : null;
+  S.last = Date.now();
+})();
+
+// ====================== DIBUJO PIXEL ART ======================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const W=96, H=96, GROUND=84;
+let SX=1, SCX=48; // escala horizontal para giros
+function R(x,y,w,h,c){ ctx.fillStyle=c; let X=x; if(SX!==1){ X = SCX + (x-SCX)*SX; } ctx.fillRect(Math.round(X),Math.round(y),w,h); }
+function rect(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
+function line(x0,y0,x1,y1,w,c){ const n=Math.max(1,Math.ceil(Math.hypot(x1-x0,y1-y0))); for(let i=0;i<=n;i++){ const x=x0+(x1-x0)*i/n, y=y0+(y1-y0)*i/n; R(x-w/2,y-w/2,w,w,c);} }
+function disc(x,y,r,c){ for(let j=-r;j<=r;j++){ const half=Math.floor(Math.sqrt(r*r-j*j)+.35); R(x-half,y+j,half*2+1,1,c);} }
+const dv = d => { const a=d*Math.PI/180; return [Math.sin(a), Math.cos(a)]; };
+const add=(p,v,k)=>[p[0]+v[0]*k, p[1]+v[1]*k];
+
+const COL = {skin:'#e9ad7e', skinD:'#c98a5c', pale:'#efdcd3', paleD:'#d4bdb3', hair:'#f8d65a', hairD:'#d9a937',
+  eye:'#58c8ff', pupil:'#1d4e89', mouth:'#8a2d3b', shirt:'#ffffff', shirtD:'#d8d8e8', shorts:'#2fa3c4', shortsD:'#1f7891', blush:'#ff8fa8'};
+
+const POSES = {
+  stand:{t:0, la:12,le:6, ra:12,re:6, ll:6,lk:0, rl:6,rk:0},
+  cielo:{t:0, la:160,le:-10, ra:150,re:15, ll:4,lk:0, rl:14,rk:0, face:'o', swing:2},
+  arabesque:{t:-38, la:95,le:0, ra:115,re:-10, ll:2,lk:0, rl:100,rk:0, face:'closed', swing:-3},
+  suelo:{t:84, dy:13, la:165,le:25, ra:70,re:20, ll:10,lk:25, rl:25,rk:35, face:'o'},
+  contraccion:{t:8, dy:6, la:-35,le:-70, ra:-35,re:-70, ll:40,lk:-75, rl:40,rk:-75, face:'sad'},
+  grito:{t:-18, la:125,le:-35, ra:150,re:110, ll:22,lk:0, rl:-4,rk:0, face:'o', swing:4},
+  salto:{t:0, dy:-11, la:135,le:0, ra:135,re:0, ll:75,lk:0, rl:75,rk:0, face:'smile', swing:-2},
+  caida:{t:62, dy:9, la:170,le:0, ra:40,re:30, ll:30,lk:30, rl:5,rk:0, face:'closed', swing:5},
+  giro:{t:0, la:90,le:0, ra:90,re:0, ll:4,lk:0, rl:40,rk:-60, face:'closed', spin:true},
+  surf:{t:-10, dy:3, la:80,le:10, ra:85,re:-15, ll:22,lk:-12, rl:22,rk:-12, face:'smile', swing:3},
+  wipe:{t:130, dy:-2, la:150,le:0, ra:160,re:20, ll:40,lk:0, rl:60,rk:30, face:'o'},
+  sit:{t:0, dy:6, la:20,le:40, ra:35,re:-80, ll:70,lk:-70, rl:65,rk:-75, face:'flat'},
+  eat:{t:0, la:12,le:6, ra:30,re:-140, ll:6,lk:0, rl:6,rk:0, face:'chomp'},
+  lie:{t:90, dy:13, la:10,le:0, ra:10,re:0, ll:4,lk:0, rl:4,rk:0, face:'closed'},
+  shower:{t:0, la:150,le:40, ra:150,re:40, ll:6,lk:0, rl:6,rk:0, face:'happyclosed'},
+  trip:{t:25, dy:3, la:120,le:0, ra:60,re:0, ll:-10,lk:0, rl:30,rk:0, face:'o'},
+};
+const DANCE_MOVES = ['cielo','arabesque','suelo','contraccion','grito','salto','caida','giro'];
+const DANCE_WORDS = {cielo:'¡AL CIELO!', arabesque:'¡ARABESQUE!', suelo:'¡EL SUELO ME ENTIENDE!', contraccion:'¡CONTRACCIÓN!', grito:'¡GRITO INTERIOR!', salto:'¡SALTO!', caida:'¡CAÍDA DRAMÁTICA!', giro:'¡GIRO ETERNO!'};
+
+function lerpPose(a,b,k){ const o={}; const keys=new Set([...Object.keys(a),...Object.keys(b)]);
+  for(const key of keys){ const va=a[key], vb=b[key]; if(typeof va==='number'||typeof vb==='number') o[key]=(va||0)+((vb||0)-(va||0))*k; else o[key]= k<.5?va:vb; } return o; }
+
+function drawGuy(p, o){
+  const t = p.t||0;
+  const hip=[o.x+(p.dx||0), o.y+(p.dy||0)];
+  const up=[Math.sin(t*Math.PI/180), -Math.cos(t*Math.PI/180)], down=[-up[0],-up[1]];
+  const perp=[Math.cos(t*Math.PI/180), Math.sin(t*Math.PI/180)];
+  const skin = o.pale?COL.pale:COL.skin, skinD = o.pale?COL.paleD:COL.skinD;
+  const head=add(hip,up,19), sb=add(hip,up,12);
+  SCX = hip[0]; SX = o.sx!==undefined?o.sx:1;
+  // pelo largo por detrás
+  const swing = (p.swing||0) + (o.swing||0);
+  for(let i=0;i<=10;i++){
+    const c=add(add(head,down,i), perp, swing*i/10 + (o.wild?Math.sin(i*1.7)*1.2:0));
+    const wdt = 6 - (i>7?(i-7):0)*.6;
+    line(c[0]-perp[0]*wdt, c[1]-perp[1]*wdt, c[0]+perp[0]*wdt, c[1]+perp[1]*wdt, 2, i>6?COL.hairD:COL.hair);
+  }
+  // piernas
+  const lh=add(hip,perp,-2.5), rh=add(hip,perp,2.5);
+  const legs=[[lh,-t-(p.ll||0),-(p.lk||0)],[rh,-t+(p.rl||0),(p.rk||0)]];
+  // nota: ángulo del mundo = -t ± ...; dv usa 0 = abajo
+  for(const [h0,a1,a2] of legs){
+    const d1=dv(a1), knee=add(h0,d1,8), d2=dv(a1+a2), foot=add(knee,d2,8);
+    line(h0[0],h0[1],knee[0],knee[1],4,skin);
+    line(knee[0],knee[1],foot[0],foot[1],3,skin);
+    line(h0[0],h0[1],h0[0]+d1[0]*5,h0[1]+d1[1]*5,5,COL.shorts);
+    R(foot[0]-1.5,foot[1]-1,3,2,skinD);
+  }
+  // pantalón
+  line(lh[0],lh[1],rh[0],rh[1],6,COL.shorts);
+  // torso (camiseta de tirantes)
+  const tw = o.fofo?11:8;
+  line(hip[0]+up[0]*1,hip[1]+up[1]*1, sb[0],sb[1], tw, COL.shirt);
+  if(o.fofo){ const b=add(hip,up,4); disc(b[0],b[1],4,COL.shirt); }
+  // tirantes y hombros de piel
+  const ls=add(sb,perp,-5.5), rs=add(sb,perp,5.5);
+  { const c1=add(sb,down,2.5); line(c1[0]-perp[0]*4.5,c1[1]-perp[1]*4.5,c1[0]+perp[0]*4.5,c1[1]+perp[1]*4.5,5,COL.shirt);
+    const pc=add(c1,down,2.5); for(const k of [-2.5,-1.5,1.5,2.5]){ const q=add(pc,perp,k); R(q[0],q[1],1,1,COL.shirtD); } const ab=add(hip,up,4); R(ab[0],ab[1],1,1,COL.shirtD); }
+  R(ls[0]-1.5,ls[1]-1.5,3,3,skin); R(rs[0]-1.5,rs[1]-1.5,3,3,skin);
+  const neck=add(hip,up,14); line(sb[0],sb[1],neck[0],neck[1],4,skin);
+  if(o.dirty){ for(const [a,b] of [[-2,4],[1,7],[2,2],[-1,9]]){ const q=add(add(hip,up,b),perp,a); R(q[0],q[1],1,1,'#8b6a43'); } }
+  // brazos
+  const arms=[[ls,-t-(p.la||0),-(p.le||0)],[rs,-t+(p.ra||0),(p.re||0)]];
+  // corrección: dv(0) = abajo. El "abajo" del cuerpo es -t... usamos ángulo del mundo directamente
+  for(const [s0,a1,a2] of arms){
+    const d1=dv(a1), el=add(s0,d1,7), d2=dv(a1+a2), hand=add(el,d2,6);
+    line(s0[0],s0[1],el[0],el[1],4,skin); line(el[0],el[1],hand[0],hand[1],3,skin);
+    R(hand[0]-1,hand[1]-1,2,2,skinD);
+  }
+  o.hand = add(add(rs,dv(-t+(p.ra||0)),7), dv(-t+(p.ra||0)+(p.re||0)),6);
+  // cabeza: pelo, cara, flequillo
+  const hc=add(head,up,0.6);
+  disc(hc[0],hc[1],6,COL.hair);
+  const fc=add(head,down,0.8);
+  disc(fc[0],fc[1],4,skin);
+  const P=(lx,ly)=>add(add(head,perp,lx),down,ly);
+  // flequillo
+  for(let i=-5;i<=3;i++){ const q=P(i, -3.6 + (i>0? (i*0.35):0)); R(q[0],q[1],1,2,COL.hair); }
+  { const q=P(-5,-1); R(q[0],q[1],1,3,COL.hairD); const q2=P(5,-1); R(q2[0],q2[1],1,3,COL.hairD); }
+  // ojos
+  const face = o.face || p.face || 'smile';
+  const eyesClosed = face==='closed'||face==='happyclosed'||o.sleepy===2;
+  for(const ex of [-2,2]){
+    const q=P(ex,0);
+    if(eyesClosed) R(q[0]-0.5,q[1]+0.5,2,1,COL.pupil);
+    else if(o.sleepy===1 || o.drunk){ R(q[0]-0.5,q[1]+0.5,2,1,COL.eye); R(q[0]-0.5,q[1],2,1,skinD); }
+    else { R(q[0]-0.5,q[1],2,2,COL.eye); R(q[0]+0.5,q[1],1,1,COL.pupil); R(q[0]-0.5,q[1]-1,2,1,COL.hairD); }
+    if(o.pale){ const b=P(ex,1.8); R(b[0]-0.5,b[1],2,1,'#a98fb5'); }
+    if(o.blush){ const b=P(ex*1.6,1.6); R(b[0],b[1],1,1,COL.blush); }
+  }
+  // boca
+  const m=P(0,2.8);
+  if(face==='smile'||face==='happyclosed'){ R(m[0]-1,m[1],1,1,COL.mouth); R(m[0],m[1]+1,1,1,COL.mouth); R(m[0]+1,m[1],1,1,COL.mouth); }
+  else if(face==='sad'){ R(m[0]-1,m[1]+1,1,1,COL.mouth); R(m[0],m[1],1,1,COL.mouth); R(m[0]+1,m[1]+1,1,1,COL.mouth); }
+  else if(face==='o'){ R(m[0]-0.5,m[1],2,2,COL.mouth); }
+  else if(face==='chomp'){ if(Math.floor(o.time/180)%2) R(m[0]-0.5,m[1],2,2,COL.mouth); else R(m[0]-1,m[1]+1,3,1,COL.mouth); }
+  else { R(m[0]-1,m[1]+1,3,1,COL.mouth); }
+  if(o.dirty){ // moscas
+    for(let i=0;i<2;i++){ const a=o.time/300+i*3; R(head[0]+Math.cos(a)*9, head[1]-4+Math.sin(a*1.3)*5,1,1,'#222'); }
+  }
+  SX=1;
+  return {head, hip};
+}
+
+// ---- escenarios ----
+function isNight(){ const h=new Date().getHours(); return h<8 || h>=21; }
+function sceneRoom(night){
+  rect(0,0,W,70,night?'#3a3157':'#ffe3c2');
+  for(let x=0;x<W;x+=8) rect(x,0,3,70,night?'#40375f':'#ffd9b0');
+  rect(0,70,W,26,night?'#5b4033':'#c98e5a'); rect(0,70,W,2,night?'#4a3329':'#a8703f');
+  for(let x=4;x<W;x+=16) rect(x,78,10,1,night?'#4f382c':'#b47b49');
+  // ventana con mar
+  rect(8,10,28,22,'#7a4b2a'); rect(10,12,24,9,night?'#1d2350':'#9fdcff'); rect(10,21,24,9,night?'#14315a':'#3fa7c9');
+  rect(21,12,2,18,'#7a4b2a'); if(!night){ rect(26,14,4,4,'#ffe066'); } else { rect(28,14,2,2,'#fff8c4'); }
+  // póster de danza
+  rect(62,10,20,26,'#fff'); rect(63,11,18,24,'#ff6f9f'); rect(70,14,4,4,'#3b2340'); rect(71,18,2,8,'#3b2340'); rect(67,18,4,1,'#3b2340'); rect(73,17,4,1,'#3b2340'); rect(68,26,2,6,'#3b2340'); rect(73,26,3,1,'#3b2340');
+  // tabla de surf apoyada
+  rect(86,30,6,40,'#ffb347'); rect(88,30,2,40,'#ff6f9f'); rect(86,30,6,2,'#3b2340');
+  // planta
+  rect(42,60,8,10,'#b5653a'); rect(40,52,4,8,'#4caf50'); rect(46,50,4,10,'#5cc96b'); rect(44,48,3,6,'#4caf50');
+}
+function sceneBeach(time){
+  rect(0,0,W,40,'#8fd8ff'); rect(0,28,W,12,'#b8e7ff'); disc(76,14,6,'#ffe066');
+  rect(0,40,W,36,'#2f97bd');
+  for(let i=0;i<6;i++){ const x=((i*22 - time/40)%110+110)%110-10; rect(x,44+ (i%3)*9,10,1,'#bfeeff'); }
+  rect(0,76,W,20,'#f3d89a'); for(let x=3;x<W;x+=11) rect(x,82+(x%3),2,1,'#d9b86f');
+}
+function sceneStreet(night){
+  rect(0,0,W,96,'#1c1838');
+  for(let y=6;y<70;y+=6) for(let x=((y/6)%2)*6;x<W;x+=12) rect(x,y,11,5,'#3a2c4a');
+  rect(0,70,W,26,'#4a4a5a'); rect(0,70,W,2,'#2c2c38');
+  // farola
+  rect(10,20,2,50,'#2b2b33'); rect(6,18,10,3,'#2b2b33'); disc(11,23,3,'#ffe9a8');
+  ctx.fillStyle='rgba(255,233,168,.12)'; ctx.beginPath(); ctx.moveTo(8,24); ctx.lineTo(0,72); ctx.lineTo(28,72); ctx.lineTo(14,24); ctx.fill();
+  // banco
+  rect(30,68,46,3,'#8a5a32'); rect(30,60,46,3,'#8a5a32'); rect(32,71,3,10,'#333'); rect(71,71,3,10,'#333');
+}
+function sceneTinder(){
+  rect(0,0,W,H,'#ff5f7e'); for(let y=0;y<H;y+=4) rect(0,y,W,2,'#ff7092');
+  rect(14,6,68,84,'#222'); rect(17,10,62,76,'#fff');
+  rect(17,10,62,48,'#ffd1dc');
+}
+function bed(){ rect(14,72,60,10,'#7f6bd1'); rect(14,66,60,7,'#fff'); rect(14,62,10,10,'#fff'); rect(12,60,3,26,'#6b4a2e'); rect(74,64,3,22,'#6b4a2e'); }
+function drawGift(g,time){
+  const x=g.x, y=GROUND-6+Math.round(Math.sin(time/250)*1);
+  if(g.type==='chuche'){ disc(x+3,y+2,3,'#ff6f9f'); R(x+2,y+1,2,1,'#fff'); R(x+3,y+5,1,4,'#fff'); }
+  else if(g.type==='concha'){ disc(x+3,y+3,3,'#ffc7a8'); for(let i=0;i<4;i++) R(x+1+i*1.5,y+1,1,4,'#e59a7c'); }
+  else if(g.type==='flor'){ for(const [a,b] of [[0,-2],[2,0],[0,2],[-2,0]]) disc(x+3+a,y+2+b,1,'#ff9fd0'); R(x+3,y+2,1,1,'#ffe066'); R(x+3,y+4,1,4,'#4caf50'); }
+  else { R(x,y,8,6,'#fff'); R(x,y,8,1,'#ff6f9f'); R(x+3,y+2,2,2,'#ff3b6b'); }
+  if(Math.floor(time/400)%2) R(x+8,y-2,1,1,'#fff');
+}
+function heart(x,y,c){ c=c||'#ff4f7b'; R(x,y,2,1,c);R(x+3,y,2,1,c);R(x-1,y+1,7,2,c);R(x,y+3,5,1,c);R(x+1,y+4,3,1,c);R(x+2,y+5,1,1,c); }
+function drawFood(type,x,y){
+  if(type==='acai'){ rect(x-3,y,7,3,'#8a5a32'); rect(x-3,y-1,7,1,'#6b2d7a'); R(x-2,y-2,1,1,'#ff4f7b'); R(x+1,y-2,1,1,'#ffe066'); }
+  else if(type==='batido'){ rect(x-1,y-4,4,6,'#7ad35c'); rect(x-1,y-4,4,1,'#fff'); R(x+2,y-7,1,3,'#ff6f9f'); }
+  else { disc(x,y-3,2,'#ff6f9f'); R(x-1,y-4,1,1,'#fff'); R(x,y-1,1,4,'#fff'); }
+}
+function txt(s,x,y,c,size){ ctx.fillStyle=c||'#3b2340'; ctx.font=(size||7)+'px "Pixelify Sans", monospace'; ctx.textAlign='center'; ctx.fillText(s,x,y); }
+
+// ====================== ANIMACIÓN Y LÓGICA DE PANTALLA ======================
+let anim=null;          // {type, start, dur, ...}
+let curPose={...POSES.stand}, targetPose=POSES.stand, poseFrom=POSES.stand, poseT0=0, poseDur=250;
+let guyX=48, walkTarget=48, flourish=null, nextFlourish=performance.now()+6000;
+let floating=[];        // corazones, zzz
+let game=null;
+
+function setPose(name,dur){ const p=POSES[name]||name; poseFrom={...curPose}; targetPose=p; poseT0=performance.now(); poseDur=dur||250; }
+
+function render(now){
+  const s=S.stats;
+  ctx.clearRect(0,0,W,H);
+  // pose interpolada
+  const k=Math.min(1,(now-poseT0)/poseDur); curPose=lerpPose(poseFrom,targetPose,k<1?(1-Math.cos(k*Math.PI))/2:1);
+  const look={time:now, dirty:s.clean<30, pale:s.anemic<30, fofo:s.fit<30, sleepy: s.energy<25?1:0};
+
+  if(S.mode==='over'){ renderOver(now); return; }
+  if(S.mode==='wine' && !(anim && anim.type==='surf')){
+    sceneStreet();
+    const p={...POSES.sit};
+    p.ra = 35+Math.sin(now/900)*15; // bebe
+    drawGuy(p,{...look, x:52, y:GROUND-20, face:'flat', drunk:true, blush:true, wild:true, dirty:true, swing:Math.sin(now/1300)*2});
+    // cartón de vino
+    const hx=52+3+Math.sin(-(p.ra-35)*0)*0;
+    const tw=Math.sin(now/900);
+    rect(Math.round(60+tw*2),Math.round(GROUND-30-tw*5),4,7,'#7a1f3d'); rect(Math.round(60+tw*2),Math.round(GROUND-30-tw*5),4,2,'#f2e6c9');
+    txt('VINO',62+tw*2,GROUND-36-tw*5,'#ffe9a8',5);
+    if(Math.floor(now/1500)%2) txt('hic!',74,40,'#ffe9a8',7);
+    drawFloating(now); return;
+  }
+
+  // ---- animaciones especiales ----
+  if(anim && anim.type==='surf'){ renderSurf(now,look); drawFloating(now); return; }
+  if(anim && anim.type==='cuddle'){ renderCuddle(now,look); return; }
+  if(anim && anim.type==='trip'){ renderTrip(now,look); return; }
+  if(S.sleeping){
+    sceneRoom(true); bed();
+    drawGuy(POSES.lie,{...look, x:30, y:GROUND-21-4, face:'closed'});
+    rect(40,66,34,8,'#9b89e0'); // manta
+    if(Math.floor(now/700)%3===0 && floating.length<4) floating.push({x:52,y:50,t0:now,kind:'z'});
+    drawFloating(now); return;
+  }
+  sceneRoom(isNight());
+  if(S.floorGift) drawGift(S.floorGift,now);
+
+  let p=curPose, x=guyX, opts={...look};
+  if(anim && anim.type==='shower'){
+    const prog=(now-anim.start)/anim.dur;
+    rect(guyX-10,2,20,3,'#a0a0b0'); rect(guyX-1,0,2,4,'#a0a0b0');
+    p={...POSES.shower, la:150+Math.sin(now/150)*20, ra:150+Math.cos(now/150)*20};
+    opts={...opts, face:'happyclosed', dirty:false, sx:1};
+    drawGuy(p,{...opts,x,y:GROUND-16});
+    for(let i=0;i<14;i++){ const dx=((i*7)%20)-10, dy=((now/4+i*13)%70); R(guyX+dx,6+dy,1,2,'#7fd0ff'); }
+    for(let i=0;i<6;i++){ const a=now/400+i; disc(guyX+Math.cos(a)*8, GROUND-28+Math.sin(a*1.3)*10, 1+(i%2),'rgba(255,255,255,.9)'); }
+    if(prog>=1) endAnim();
+  } else if(anim && anim.type==='eat'){
+    p=POSES.eat; const o={...opts, x, y:GROUND-16, face:'chomp'};
+    drawGuy(p,o);
+    const prog=(now-anim.start)/anim.dur;
+    if(prog<0.8) drawFood(anim.food, Math.round(o.hand[0]), Math.round(o.hand[1]));
+    if(prog>=1) endAnim();
+  } else if(anim && anim.type==='dance'){
+    renderDance(now,opts);
+  } else {
+    // reposo: paseíto y florituras de baile
+    if(!flourish && now>nextFlourish && !game){
+      flourish={move:DANCE_MOVES[Math.floor(Math.random()*DANCE_MOVES.length)], until:now+1800};
+      setPose(flourish.move,350);
+    }
+    if(flourish && now>flourish.until){ flourish=null; setPose('stand',400); nextFlourish=now+5000+Math.random()*7000; }
+    let walking=false;
+    if(!flourish){
+      if(Math.abs(walkTarget-guyX)<1){ if(Math.random()<0.004) walkTarget=18+Math.random()*60; }
+      else { guyX+=Math.sign(walkTarget-guyX)*(s.fit<30?0.12:0.25); walking=true; }
+    }
+    p={...curPose};
+    let sx=1;
+    if(flourish && POSES[flourish.move].spin){ sx=Math.cos(now/90); p.la=90; p.ra=90; }
+    if(walking && !flourish){ const w=Math.sin(now/120); p.ll=6+w*10; p.rl=6-w*10; p.la=12-w*8; p.ra=12+w*8; }
+    const bob = !flourish ? Math.round(Math.sin(now/400)) : 0;
+    drawGuy(p,{...opts, x:guyX, y:GROUND-16+bob, sx, swing: flourish?Math.sin(now/120)*3:0});
+  }
+  drawFloating(now);
+}
+function renderDance(now,opts){
+  const sx = (anim.spin) ? Math.cos(now/70) : 1;
+  let p={...curPose};
+  if(anim.spin){ p.la=90; p.ra=90; }
+  // foco
+  ctx.fillStyle='rgba(255,240,180,.35)'; ctx.beginPath(); ctx.moveTo(40,0); ctx.lineTo(56,0); ctx.lineTo(76,GROUND+4); ctx.lineTo(20,GROUND+4); ctx.fill();
+  drawGuy(p,{...opts, x:48, y:GROUND-16, sx, swing:Math.sin(now/110)*4});
+  if(anim.word){ txt(anim.word,48,14,'#ff3b6b',8); }
+  if(anim.done && now>anim.done) endAnim();
+}
+function renderSurf(now,look){
+  sceneBeach(now);
+  const waveY = 60 + Math.sin(now/500)*3;
+  // ola grande
+  for(let x=0;x<W;x++){ const h=Math.max(0,14-Math.abs(x-60)/3)+Math.sin(x/5+now/200)*1.5; rect(x,Math.round(waveY+8-h),1,Math.round(h+8),'#2589ad'); R(x,Math.round(waveY+8-h),1,1,'#e9fbff'); }
+  const st = anim.state||'ride';
+  const bx=40+Math.sin(now/700)*6, by=Math.round(waveY-2);
+  if(st==='wipe'){
+    rect(Math.round(bx-10+((now-anim.stateT)/30)),by+6,22,3,'#ffb347');
+    drawGuy(POSES.wipe,{...look, x:bx, y:by-8, face:'o', dirty:false});
+    for(let i=0;i<8;i++) R(bx-8+i*3, by+2-((now/10+i*7)%10),1,1,'#fff');
+  } else {
+    rect(Math.round(bx-11),by+5,22,3,'#ffb347'); rect(Math.round(bx-11),by+6,22,1,'#ff6f9f');
+    const p={...POSES.surf, la:80+Math.sin(now/200)*15, ra:85-Math.sin(now/200)*15};
+    drawGuy(p,{...look, x:bx, y:by-11, face: st==='good'?'o':'smile', dirty:false, swing:-4+Math.sin(now/150)*2});
+  }
+  if(anim.word) txt(anim.word,48,14,'#fff',8);
+}
+function renderCuddle(now,look){
+  const e=now-anim.start, dur=anim.dur;
+  sceneRoom(true); bed();
+  drawGuy(POSES.lie,{...look, x:30, y:GROUND-25, face:'happyclosed', blush:true});
+  rect(40,66,34,8,'#9b89e0');
+  let a = e<1000? e/1000 : e>dur-1000 ? Math.max(0,(dur-e)/1000) : 1;
+  ctx.fillStyle=`rgba(10,5,20,${a})`; ctx.fillRect(0,0,W,H);
+  if(e>800 && e<dur-800){
+    for(let i=0;i<7;i++){ const y=((e/18+i*17)%90); heart(10+i*12, 90-y, i%2?'#ff4f7b':'#ff9fbf'); }
+    txt('shhh...',48,40,'#fff',8); if(Math.floor(e/500)%2) txt('z z z',60,52,'#c9b8ff',7);
+  }
+  if(e>=dur){ const morning=true; endAnim(); }
+}
+function renderOver(now){
+  if(S.cause==='tinder'){
+    sceneTinder();
+    drawGuy({...POSES.stand, la:30,le:-140, ra:20,re:0},{time:now, x:48, y:46, face:'smile', blush:true});
+    rect(17,58,62,28,'#fff');
+    txt('Bailarín, 27',48,66,'#3b2340',8);
+    txt('Santoña · surf · danza',48,74,'#888',6);
+    txt('busco quien me valore',48,81,'#ff3b6b',6);
+    if(Math.floor(now/600)%2) txt('GAME OVER',48,8,'#fff',8);
+  } else {
+    sceneStreet();
+    drawGuy(POSES.lie,{time:now, x:40, y:GROUND-21+6, face:'closed', blush:true, wild:true, dirty:true});
+    rect(64,GROUND-6,4,7,'#7a1f3d');
+    if(Math.floor(now/600)%2) txt('GAME OVER',48,30,'#ff6f9f',9);
+  }
+}
+function drawFloating(now){
+  floating = floating.filter(f=>now-f.t0<1800);
+  for(const f of floating){ const e=(now-f.t0)/1800, y=f.y-e*24, x=f.x+Math.sin(e*8)*3;
+    if(f.kind==='z') txt('z',x,y,'#c9b8ff',7+e*4); else if(f.kind==='note') txt('♪',x,y,'#3b2340',8); else heart(Math.round(x),Math.round(y)); }
+}
+
+// ====================== INTERFAZ ======================
+const $=id=>document.getElementById(id);
+const barsEl=$('bars');
+barsEl.innerHTML = BARS.map(([k,ic,n])=>`<div class="bar" title="${n}"><span class="ic">${ic}</span><div class="tr"><div class="fi" id="b_${k}"></div></div></div>`).join('');
+function updateBars(){
+  for(const [k] of BARS){ const v=S.stats[k], el=$('b_'+k); el.style.width=v+'%'; el.className='fi'+(v<25?' low':v<50?' mid':''); }
+  const days=Math.floor((Date.now()-S.born)/86400000);
+  { const d=new Date(); const fecha=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}); const hora=d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    $('clock').textContent = (isNight()?'🌙 ':'☀️ ')+fecha+' · '+hora; }
+  $('sub').textContent = S.mode==='over' ? 'game over' : `la mascota de María · día ${days+1}`;
+  $('sleepLbl').textContent = S.sleeping ? 'Despertar' : 'Dormir';
+  const wine = S.mode==='wine';
+  const r=$('rescue');
+  if(wine){ r.classList.add('show'); const left=Math.max(0,24-S.wineHours);
+    r.innerHTML = `🍷 ¡Está bebiendo vino en la calle! Rescátalo: ${S.rescue.shower?'✅':'⬜'} ducharlo · ${S.rescue.eat?'✅':'⬜'} comer · ${S.rescue.surf?'✅':'⬜'} surfear<br>Quedan ${Math.floor(left)} h ${Math.floor((left%1)*60)} min`; }
+  else r.classList.remove('show');
+  document.querySelectorAll('#menu button').forEach(b=>{
+    const a=b.dataset.a;
+    let dis = !!anim || !!game || S.mode==='over';
+    if(wine && !['eat','shower','surf','status','help'].includes(a)) dis=true;
+    if(S.sleeping && !['sleep','status','help','bed'].includes(a)) dis=true;
+    if(['status','help'].includes(a) && !game && !anim) dis=false;
+    b.disabled=dis;
+  });
+}
+let bubbleTimer=null;
+function say(t,ms){ const b=$('bubble'); b.textContent=t; b.classList.add('show'); clearTimeout(bubbleTimer); bubbleTimer=setTimeout(()=>b.classList.remove('show'), ms||5000); }
+function modal(html){ $('card').innerHTML=html; $('modal').classList.add('show'); }
+function closeModal(){ $('modal').classList.remove('show'); }
+$('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closeModal(); });
+
+// sonido tipo maquinita
+let AC=null;
+function beep(f,d,type){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const o=AC.createOscillator(), g=AC.createGain(); o.type=type||'square'; o.frequency.value=f; g.gain.value=.05; o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+(d||.08)); }catch(e){} }
+function jingle(ok){ (ok?[660,880,1100]:[400,300]).forEach((f,i)=>setTimeout(()=>beep(f,.09),i*110)); }
+
+function startAnim(a){ anim={...a, start:performance.now()}; updateBars(); }
+function endAnim(){ const a=anim; anim=null; setPose('stand',300); if(a && a.onEnd) a.onEnd(); updateBars(); save(); }
+
+function checkRescue(){
+  if(S.mode==='wine' && S.rescue.eat && S.rescue.shower && S.rescue.surf){
+    S.mode='ok'; const s=S.stats; s.food=Math.max(s.food,50); s.clean=Math.max(s.clean,60); s.fit=Math.max(s.fit,45); s.happy=Math.max(s.happy,40);
+    S.wineHours=0; guyX=48; save(); updateBars();
+    say('Ay, María... qué vergüenza. Gracias por rescatarme. No se lo cuentes a nadie del estudio. 😳',7000); jingle(true);
+  }
+}
+
+// ---- acciones ----
+const ACTIONS = {
+  eat(){
+    modal(`<h2>¿Qué le das?</h2><div class="opts">
+      <button data-f="acai">🫐 Açaí bowl <small>(llena mucho, sano)</small></button>
+      <button data-f="batido">🥤 Batido verde <small>(llena y da energía)</small></button>
+      <button data-f="chuche">🍭 Una chuche <small>(feliz pero poco sano)</small></button>
+      <button data-x>Cancelar</button></div>`);
+    $('card').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ closeModal(); feed(b.dataset.f); });
+    $('card').querySelector('[data-x]').onclick=closeModal;
+  },
+  surf(){ startSurf(); },
+  dance(){ startDance(); },
+  sleep(){
+    if(S.sleeping){ S.sleeping=false; say('¿Quééé? Estaba soñando que me fichaba Pina Bausch...'); }
+    else { if(S.stats.energy>90){ say('No tengo sueño, tengo ARTE dentro.'); return; } S.sleeping=true; flourish=null; setPose('stand',1); beep(300,.2,'sine'); }
+    save(); updateBars();
+  },
+  shower(){
+    beep(500,.06);
+    startAnim({type:'shower', dur:3200, onEnd(){ S.stats.clean=100; S.stats.happy=clamp(S.stats.happy+3);
+      if(S.mode==='wine'){ S.rescue.shower=true; say('El agua fría me devuelve la dignidad... poco a poco.'); checkRescue(); }
+      else say(pick(['Limpito y con el pelo brillante. Lo sé.','La arena no se va nunca del todo. Es parte de mí.','Huelo a coco y a éxito.'])); }});
+  },
+  bed(){
+    const left = 3*3600000 - (Date.now()-S.lastCuddle);
+    if(left>0){ const m=Math.ceil(left/60000); say(`Dame un respiro, que soy artista... (vuelve en ${m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min'})`); return; }
+    S.sleeping=false;
+    startAnim({type:'cuddle', dur:5200, onEnd(){ const s=S.stats; s.anemic=100; s.happy=clamp(s.happy+15); s.energy=clamp(s.energy+10); S.lastCuddle=Date.now();
+      say(pick(['Buenos días, María. Tengo el estado anémico al 100%. 🩸✨','Me siento como después de un estreno con ovación.','Esto ha sido mejor que una pieza de Pina Bausch. Y eso es mucho decir.'])); jingle(true); }});
+    beep(440,.15,'sine');
+  },
+  status(){ showStatus(); },
+  help(){
+    modal(`<h2>Cómo cuidar al Bailarín</h2>
+    <p>Sus barras bajan con el tiempo, también con la app cerrada.</p>
+    <p>💪 La <b>forma física</b> solo sube surfeando y bailando.<br>🩸 El <b>estado anémico</b> solo se recarga acostándote con él (cada 3 h).</p>
+    <p>🍷 Si se queda sin comida, limpieza o forma física, acaba <b>bebiendo vino en la calle</b>. Tienes 24 h para rescatarlo: duchándolo, dándole de comer y llevándolo a surfear.</p>
+    <p>📱 Si lo tienes sano pero sin cariño (felicidad y estado anémico muy bajos durante 12 h), <b>se abre un Tinder</b>. GAME OVER.</p>
+    <p>🎁 Si está bien cuidado, te deja regalitos en el suelo. ¡Tócalos!</p>
+    <p>🚐 De vez en cuando te propondrá una excursión por Cantabria. Si le dices que sí, os vais en furgoneta.</p>
+    <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
+    <p>📲 Para que no pierda la partida, instálalo: en Safari toca Compartir y luego "Añadir a pantalla de inicio". Ábrelo siempre desde ese icono.</p>
+    <div class="opts"><button data-x>¡Entendido!</button></div>`);
+    $('card').querySelector('[data-x]').onclick=closeModal;
+  }
+};
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function feed(f){
+  const s=S.stats;
+  startAnim({type:'eat', food:f, dur:2600, onEnd(){
+    if(f==='acai'){ s.food=clamp(s.food+40); s.fit=clamp(s.fit+2); say(pick(['Açaí: el combustible de los artistas.','Mmm, sabe a mañana de olas buenas.'])); }
+    else if(f==='batido'){ s.food=clamp(s.food+25); s.energy=clamp(s.energy+12); say(pick(['Verde como mi alma cuando improviso.','Energía para tres contracciones seguidas.'])); }
+    else { s.food=clamp(s.food+15); s.happy=clamp(s.happy+12); s.fit=clamp(s.fit-3); say(pick(['¡Azúcar! Ahora puedo girar durante una hora.','No se lo digas a mi coreógrafa.'])); }
+    if(S.mode==='wine'){ S.rescue.eat=true; checkRescue(); }
+  }});
+  beep(700,.05);
+}
+
+// ---- minijuego de timing ----
+function startGame(kind, rounds, onRound, onFinish){
+  game={kind, rounds, round:0, hits:0, pos:0, dir:1, speed:kind==='surf'?0.9:1.1, state:'aim', onRound, onFinish};
+  newZone(); $('game').classList.add('show'); updateBars(); gameLabel();
+}
+function newZone(){ game.zw = Math.max(0.14, 0.26 - game.round*0.025); game.zs = 0.1+Math.random()*(0.8-game.zw); const z=$('zone'); z.style.left=(game.zs*100)+'%'; z.style.width=(game.zw*100)+'%'; }
+function gameLabel(){ $('gameLbl').textContent = (game.kind==='surf'?'🏄 Ola':'💃 Movimiento')+` ${game.round+1}/${game.rounds} · ¡toca en lo verde!`; }
+function gameTap(){
+  if(!game || game.state!=='aim') return;
+  const hit = game.pos>=game.zs && game.pos<=game.zs+game.zw;
+  if(hit){ game.hits++; beep(880,.07); } else beep(200,.12);
+  game.state='show'; game.onRound(hit, game.round);
+  setTimeout(()=>{ if(!game) return; game.round++; if(game.round>=game.rounds){ const g=game; game=null; $('game').classList.remove('show'); g.onFinish(g.hits); updateBars(); }
+    else { game.state='aim'; game.speed*=1.12; newZone(); gameLabel(); } }, 1100);
+}
+function tickGame(dt){
+  if(!game || game.state!=='aim') return;
+  game.pos += game.dir*game.speed*dt; if(game.pos>1){game.pos=1;game.dir=-1;} if(game.pos<0){game.pos=0;game.dir=1;}
+  $('cursor').style.left=(game.pos*100)+'%';
+}
+function startSurf(){
+  S.sleeping=false; anim={type:'surf', start:performance.now(), state:'ride'};
+  startGame('surf',3,(hit)=>{ anim.state=hit?'good':'wipe'; anim.stateT=performance.now(); anim.word=hit?pick(['¡OLA PERFECTA!','¡TUBO!','¡QUÉ ESTILO!']):pick(['¡REVOLCÓN!','¡GLUGLUGLU!','¡TRAGADO!']);
+      setTimeout(()=>{ if(anim&&anim.type==='surf'){anim.state='ride';anim.word=null;} },900); },
+    (hits)=>{ const s=S.stats; s.fit=clamp(s.fit+8+hits*6); s.happy=clamp(s.happy+5+hits*5); s.clean=clamp(s.clean-15); s.energy=clamp(s.energy-10); s.food=clamp(s.food-5);
+      anim=null; setPose('stand',1);
+      if(S.mode==='wine'){ S.rescue.surf=true; S.stats.clean=Math.max(S.stats.clean,10); say('El mar me ha quitado la resaca... y el bañador.'); checkRescue(); }
+      else say(hits===3?'¡3 de 3! Soy uno con el océano. Y lleno de arena.':hits>0?`${hits} olas buenas. El mar y yo tenemos una relación complicada.`:'El océano me ha rechazado. Como el último casting.');
+      jingle(hits>0); save(); });
+}
+function startDance(){
+  S.sleeping=false; anim={type:'dance', start:performance.now()};
+  const order=[...DANCE_MOVES].sort(()=>Math.random()-.5);
+  setPose('stand',1);
+  startGame('dance',5,(hit,i)=>{
+      if(hit){ const mv=order[i%order.length]; anim.spin=!!POSES[mv].spin; setPose(mv,280); anim.word=DANCE_WORDS[mv]; floating.push({x:30+Math.random()*36,y:40,t0:performance.now(),kind:'note'}); }
+      else { anim.spin=false; setPose('trip',200); anim.word=pick(['¡UPS!','me he tropezado con mi ego','¡PISOTÓN!']); }
+      setTimeout(()=>{ if(anim&&anim.type==='dance'){ anim.spin=false; setPose('stand',250); anim.word=null; } },900); },
+    (hits)=>{ const s=S.stats; s.fit=clamp(s.fit+6+hits*4); s.happy=clamp(s.happy+6+hits*4); s.energy=clamp(s.energy-8); s.food=clamp(s.food-4);
+      anim.word = hits>=4?'¡BRAVO! 👏':'fin.'; anim.done=performance.now()+1200;
+      setTimeout(()=>say(hits===5?'Ovación cerrada. He llorado. Tú también, admítelo.':hits>=3?'Ha sido una pieza muy honesta. Me duele el alma y el isquio.':'Era danza conceptual. Los fallos eran a propósito.'),1300);
+      jingle(hits>=3); save(); });
+}
+
+
+// ====================== EXCURSIONES POR CANTABRIA ======================
+const TRIPS = [
+ {id:'fuente', short:'Fuente Dé', name:'Teleférico de Fuente Dé', scene:'cable', ask:'María, ¿subimos en el teleférico de Fuente Dé? Quiero bailar en los Picos de Europa.', fact:'Teleférico de Fuente Dé: sube 753 metros de desnivel en unos 4 minutos, hasta el mirador de El Cable, a 1.823 m. ¡Mira qué vistas!', fx:{happy:25,fit:6,energy:-12}},
+ {id:'suances', short:'Suances', name:'Playa de Los Locos, Suances', scene:'surf', ask:'¡Hay olas en Suances! ¿Nos vamos en la furgo a la playa de Los Locos?', fact:'Playa de Los Locos, en Suances: de las más famosas de Cantabria para surfear. El nombre me representa.', fx:{happy:20,fit:15,clean:-15,energy:-15}},
+ {id:'somo', short:'Somo', name:'Playa de Somo', scene:'surf', ask:'¿Cogemos la furgo y nos vamos a surfear a Somo, frente a Santander?', fact:'Somo: arena infinita, buenas olas y Santander al otro lado de la bahía. Aquí hasta las gaviotas hacen contemporáneo.', fx:{happy:20,fit:15,clean:-15,energy:-15}},
+ {id:'potes', short:'Potes', name:'Cocido lebaniego en Potes', scene:'food', food:'cocido', ask:'Tengo un hambre artística... ¿vamos a Potes a comer cocido lebaniego?', fact:'Potes, capital de Liébana: cocido lebaniego con garbanzos. Hoy no hago ni un salto, María.', fx:{food:50,happy:15,fit:-4,energy:-8}},
+ {id:'rabas', short:'Santander', name:'Rabas en Santander', scene:'food', food:'rabas', ask:'¿Nos vamos de rabas a Santander? Prometo no bailar encima de la mesa.', fact:'Rabas en Santander: calamar rebozado, limón y vistas a la bahía. Bailar con la boca llena también es contemporáneo.', fx:{food:40,happy:15,energy:-8}},
+ {id:'pas', short:'Valles Pasiegos', name:'Sobaos y quesada en los Valles Pasiegos', scene:'food', food:'sobaos', ask:'María, ¿vamos a los Valles Pasiegos a por sobaos y quesada?', fact:'Valles Pasiegos: sobaos y quesada pasiega. Llevo tres. La danza puede esperar.', fx:{food:35,happy:20,fit:-6,energy:-8}},
+ {id:'hermida', short:'La Hermida', name:'Escalada en La Hermida', scene:'climb', ask:'¿Nos vamos a escalar al desfiladero de La Hermida? Tengo los antebrazos con ganas de drama.', fact:'Desfiladero de La Hermida: uno de los más largos de España. Paredes enormes y yo colgando con mucho estilo.', fx:{happy:18,fit:20,energy:-20,clean:-10}},
+ {id:'santillana', short:'Santillana', name:'Santillana del Mar', scene:'village', ask:'¿Vamos a Santillana del Mar? Quiero bailar entre piedras medievales.', fact:'Santillana del Mar, la villa de las tres mentiras: ni es santa, ni llana, ni tiene mar. Como yo: ni puntual, ni tranquilo, ni humilde.', fx:{happy:22,fit:4,energy:-10}},
+ {id:'comillas', short:'Comillas', name:'El Capricho de Gaudí, Comillas', scene:'gaudi', ask:'¿Nos vamos a Comillas a ver El Capricho de Gaudí? Me inspira muchísimo.', fact:'El Capricho, en Comillas: una de las pocas obras de Gaudí fuera de Cataluña, llena de azulejos de girasoles. Voy a crear una pieza con esto.', fx:{happy:22,energy:-10}},
+ {id:'berria', short:'Berria', name:'Playa de Berria, Santoña', scene:'surf', ask:'¿Bajamos a Berria a coger unas olas? Está aquí al lado de casa.', fact:'Playa de Berria, en Santoña: mi playa de casa, a los pies del monte Buciero. Aquí aprendí a surfear viniendo de Valladolid.', fx:{happy:20,fit:15,clean:-15,energy:-12}},
+ {id:'caballo', short:'Faro del Caballo', name:'Faro del Caballo, Santoña', scene:'faro', ask:'¿Bajamos las escaleras del Faro del Caballo? Son mi entrenamiento de piernas favorito.', fact:'Faro del Caballo, en Santoña: se baja por cientos de escalones en el acantilado del monte Buciero. Y luego hay que subirlos. Pierna de bailarín.', fx:{happy:22,fit:15,energy:-18}},
+ {id:'anchoas', short:'Santoña', name:'Anchoas en Santoña', scene:'food', food:'anchoas', ask:'¿Nos tomamos unas anchoas en el puerto de Santoña? Invito yo (con tu dinero).', fact:'Anchoas de Santoña, las más famosas del Cantábrico. En Valladolid me las mandaban en lata; aquí las tengo frescas.', fx:{food:35,happy:18,energy:-5}},
+ {id:'cabomayor', short:'Cabo Mayor', name:'Faro de Cabo Mayor', scene:'faro', ask:'¿Vamos al faro de Cabo Mayor a ver el atardecer? Tengo un solo preparado para el viento.', fact:'Faro de Cabo Mayor, en Santander: acantilados, mar Cantábrico y viento en el pelo. Mi melena ha nacido para esto.', fx:{happy:25,energy:-8}},
+];
+function proposeTrip(){
+  const pool=TRIPS.filter(t=>t.id!==S.lastTripId), t=pick(pool), b=$('bubble');
+  b.textContent='';
+  const p=document.createElement('div'); p.textContent='🚐 '+t.ask; b.appendChild(p);
+  const row=document.createElement('div'); row.className='brow';
+  const yes=document.createElement('button'); yes.textContent='¡Vamos!';
+  const no=document.createElement('button'); no.textContent='Hoy no';
+  yes.onclick=()=>{ b.classList.remove('show'); startTrip(t); };
+  no.onclick=()=>say(pick(['Vale... me quedo aquí haciendo contracciones de pena.','Bueno, otro día. La furgo y yo te esperamos.','Lo entiendo. Bailaré mi tristeza en el salón.']));
+  row.append(yes,no); b.appendChild(row); b.classList.add('show');
+  clearTimeout(bubbleTimer); bubbleTimer=setTimeout(()=>b.classList.remove('show'),15000);
+  beep(760,.06); setTimeout(()=>beep(990,.06),90);
+}
+function startTrip(t){
+  if(anim||game||S.mode!=='ok'||S.sleeping) return;
+  if(S.stats.energy<15){ say('Me encantaría, pero estoy sin energía. Déjame dormir un poco antes.'); return; }
+  flourish=null; jingle(true);
+  startAnim({type:'trip', trip:t, dur:13000, onEnd(){
+    const s=S.stats; for(const k in t.fx) s[k]=clamp(s[k]+t.fx[k]);
+    S.trips[t.id]=(S.trips[t.id]||0)+1; S.lastTrip=Date.now(); S.lastTripId=t.id; guyX=48;
+    say(pick(['¡Qué día! Cantabria infinita. Gracias por venir conmigo, María.','Vuelvo a casa con arena, recuerdos y una coreografía nueva.','Te he guardado una postal en tu colección. Mírala en Estado.']),6000);
+  }});
+}
+function postales(){
+  const v=TRIPS.filter(t=>S.trips[t.id]);
+  if(!v.length) return '<p><small>Todavía no habéis ido de excursión. Cuando te proponga un plan, dile que sí.</small></p>';
+  return v.map(t=>`<div class="note">📍 ${t.name}${S.trips[t.id]>1?` (×${S.trips[t.id]})`:''}</div>`).join('');
+}
+function mountain(cx,base,h,w,c,snow){
+  for(let y=0;y<h;y++){ const half=Math.round(w*(y/h)/2); rect(Math.round(cx-half),base-h+y,half*2+1,1, (snow && y<h*0.28)?'#ffffff':c); }
+}
+function label(s){ rect(0,86,W,10,'rgba(59,35,64,.75)'); txt(s,48,93.5,'#ffe9a8',7); }
+function renderTrip(now,look){
+  const e=now-anim.start, t=anim.trip;
+  if(e<4500) renderVan(now,e,t);
+  else { if(!anim.arrived){ anim.arrived=true; say(t.fact,8000); beep(880,.08); setTimeout(()=>beep(1100,.08),120); } renderPlace(now,e-4500,t,look); }
+  if(e>=anim.dur) endAnim();
+}
+function renderVan(now,e,t){
+  const off=e/20;
+  rect(0,0,W,40,'#9fdcff'); disc(80,12,5,'#ffe066');
+  for(let i=0;i<4;i++){ const x=((i*40-off*0.15)%160+160)%160-30; mountain(x,44,22,40,'#7d8fa3',true); }
+  for(let i=0;i<5;i++){ const x=((i*30-off*0.35)%150+150)%150-30; disc(x,50,13,'#5cb85c'); }
+  rect(0,50,W,20,'#5cb85c');
+  for(let i=0;i<4;i++){ const x=((i*34-off*0.7)%136+136)%136-20; rect(Math.round(x),57,2,8,'#6b4a2e'); disc(x+1,55,4,'#3e8e41'); }
+  rect(0,70,W,26,'#55555f'); rect(0,70,W,2,'#3f3f48');
+  for(let i=0;i<6;i++){ const x=((i*20-off*1.8)%120+120)%120-10; rect(Math.round(x),83,10,2,'#fff'); }
+  // cartel de carretera
+  const sx=Math.round(120-e/14);
+  if(sx>-40){ rect(sx+14,48,2,22,'#888'); rect(sx,38,34,11,'#1f7a4a'); rect(sx+1,39,32,9,'#2f9a5e'); txt(t.short,sx+17,46,'#fff',6); }
+  // furgoneta
+  const bob=Math.round(Math.sin(now/90)*0.6), vx=26, vy=50+bob;
+  rect(vx+4,vy-3,32,3,'#ffb347'); rect(vx+4,vy-2,32,1,'#ff6f9f');
+  rect(vx+2,vy,36,2,'#fff7e6');
+  rect(vx,vy+2,40,10,'#7fd0e8'); rect(vx,vy+12,40,8,'#fff7e6'); rect(vx,vy+12,40,1,'#5aaecb');
+  rect(vx+3,vy+4,8,6,'#cdefff'); rect(vx+13,vy+4,8,6,'#cdefff'); rect(vx+28,vy+4,9,6,'#cdefff');
+  rect(vx+39,vy+13,2,2,'#ffe066'); rect(vx+40,vy+16,2,3,'#c8c8c8'); rect(vx-1,vy+16,2,3,'#c8c8c8');
+  heart(vx+15,vy+14,'#ff6f9f');
+  // el Bailarín conduciendo, con la melena al viento
+  const hx=vx+32, hy=vy+7;
+  for(let i=0;i<9;i++){ const yy=hy-1+Math.sin(now/80+i*0.8)*1.2; R(hx-3-i,yy,1,2,i>5?COL.hairD:COL.hair); }
+  disc(hx,hy,3,COL.hair); disc(hx+1,hy+1,2,COL.skin); R(hx+2,hy,1,1,COL.eye); R(hx+1,hy+2,2,1,COL.mouth);
+  for(const wx of [vx+8,vx+32]){ disc(wx,vy+20,3,'#222'); const a=now/60; R(wx+Math.round(Math.cos(a)*1.5),vy+20+Math.round(Math.sin(a)*1.5),1,1,'#aaa'); }
+  for(let i=0;i<3;i++){ const k=((e/25+i*8)%24); disc(vx-3-k,vy+17-k/4,1+Math.floor(k/10),'rgba(255,255,255,.6)'); }
+  txt('Santoña → '+t.short,48,9,'#3b2340',7);
+}
+function renderPlace(now,e,t,look){
+  const moves=DANCE_MOVES.filter(m=>m!=='giro');
+  const dancePose=POSES[moves[Math.floor(e/900)%moves.length]];
+  const lk={...look, dirty:false};
+  if(t.scene==='cable'){
+    rect(0,0,W,96,'#a8dcff'); rect(0,0,W,20,'#8fd0ff');
+    mountain(20,96,70,70,'#8a96a8',true); mountain(70,96,84,80,'#77859a',true); mountain(48,96,40,60,'#5f9e5a',false);
+    const p=Math.min(1,e/5500), x0=4,y0=88,x1=92,y1=14;
+    line(x0,y0,x1,y1,1,'#333');
+    const cx=x0+(x1-x0)*p, cy=y0+(y1-y0)*p;
+    line(cx,cy,cx,cy+6,1,'#333');
+    rect(Math.round(cx-6),Math.round(cy+6),13,10,'#e2463f'); rect(Math.round(cx-5),Math.round(cy+8),11,4,'#cdefff');
+    disc(cx,cy+11,2,COL.hair); R(cx,cy+11,2,2,COL.skin);
+    if(p>=1){ txt('¡1.823 m!',30,30,'#3b2340',8); }
+    label('Teleférico de Fuente Dé');
+  } else if(t.scene==='surf'){
+    sceneBeach(now);
+    const waveY=60+Math.sin(now/500)*3;
+    for(let x=0;x<W;x++){ const h=Math.max(0,14-Math.abs(x-60)/3)+Math.sin(x/5+now/200)*1.5; rect(x,Math.round(waveY+8-h),1,Math.round(h+8),'#2589ad'); R(x,Math.round(waveY+8-h),1,1,'#e9fbff'); }
+    const bx=40+Math.sin(now/700)*8, by=Math.round(waveY-2);
+    rect(Math.round(bx-11),by+5,22,3,'#ffb347'); rect(Math.round(bx-11),by+6,22,1,'#ff6f9f');
+    drawGuy({...POSES.surf, la:80+Math.sin(now/200)*15, ra:85-Math.sin(now/200)*15},{...lk, x:bx, y:by-11, face:'smile', swing:-4+Math.sin(now/150)*2});
+    label(t.name);
+  } else if(t.scene==='food'){
+    rect(0,0,W,96,'#e8c39a'); for(let x=0;x<W;x+=10) rect(x,0,1,60,'#d2a676');
+    rect(56,8,30,22,'#7a4b2a'); rect(58,10,26,9,'#9fdcff'); rect(58,19,26,9,'#3fa7c9');
+    rect(0,60,W,36,'#a8703f');
+    drawGuy(POSES.eat,{...lk, x:48, y:58, face:'chomp'});
+    rect(10,62,76,4,'#fff'); rect(10,66,76,20,'#f2f2f2'); rect(10,66,76,1,'#ddd');
+    for(let x=14;x<86;x+=8) rect(x,62,4,4,'#ff6f9f');
+    if(t.food==='cocido'){ rect(36,56,24,7,'#3b3b3b'); disc(48,57,10,'#3b3b3b'); rect(36,52,24,5,'#b5651d'); for(let i=0;i<6;i++) R(39+i*3,53+(i%2),2,1,'#f2d16b'); for(let i=0;i<3;i++) R(42+i*5,48-((now/120+i*5)%8),1,2,'rgba(255,255,255,.8)'); }
+    else if(t.food==='rabas'){ disc(48,59,9,'#fff'); for(let i=0;i<6;i++){ const a=i; disc(42+(i%3)*5,56+Math.floor(i/3)*4,2,'#e8b54a'); R(42+(i%3)*5,56+Math.floor(i/3)*4,1,1,'#fff'); } R(55,55,3,2,'#f5e663'); }
+    else if(t.food==='anchoas'){ disc(48,59,9,'#fff'); for(let i=0;i<5;i++){ rect(41,54+i*2,14,1,'#8a5a3a'); rect(41,55+i*2,14,1,'#c9cfd6'); } R(44,53,2,1,'#5c8f3a'); }
+    else { disc(48,59,9,'#fff'); rect(40,54,7,5,'#e3a64a'); rect(40,54,7,1,'#c27b2a'); rect(49,55,7,5,'#e3a64a'); rect(49,55,7,1,'#c27b2a'); rect(44,58,10,3,'#f0d9a0'); }
+    label(t.name);
+  } else if(t.scene==='climb'){
+    rect(0,0,W,96,'#9fdcff'); mountain(15,96,60,50,'#5f9e5a',false);
+    rect(40,0,56,96,'#9a8f84'); for(let i=0;i<14;i++){ rect(40+((i*13)%50),(i*17)%90,2,6,'#7d736a'); rect(42+((i*29)%50),(i*11)%90,3,2,'#b3a99e'); }
+    const climbY=78-Math.min(40,e/200);
+    const sw=Math.floor(e/400)%2;
+    line(66,0,66,climbY-20,1,'#ff6f9f');
+    drawGuy({t:0, la:sw?160:130,le:0, ra:sw?130:160,re:0, ll:sw?40:20,lk:-40, rl:sw?20:40,rk:40, face:'o'},{...lk, x:66, y:climbY});
+    label('Escalada en La Hermida');
+  } else if(t.scene==='village'){
+    rect(0,0,W,96,'#9fdcff');
+    for(const [x,w,h] of [[0,30,46],[32,30,52],[64,32,44]]){ rect(x,70-h,w,h,'#d8c3a0'); rect(x-1,70-h-4,w+2,5,'#9b4a2c'); for(let i=0;i<2;i++){ rect(x+5+i*12,70-h+8,6,8,'#5a3b22'); rect(x+3+i*12,70-h+16,10,2,'#6b4a2e'); R(x+5+i*12,70-h+15,2,1,'#ff4f7b'); R(x+9+i*12,70-h+15,2,1,'#ff9fd0'); } rect(x+w/2-3,58,7,12,'#5a3b22'); }
+    rect(0,70,W,26,'#b9b1a3'); for(let y=72;y<96;y+=4) for(let x=(y%8);x<W;x+=8) rect(x,y,6,3,'#a59c8d');
+    drawGuy(dancePose,{...lk, x:48, y:GROUND-16, swing:Math.sin(now/110)*4});
+    label('Santillana del Mar');
+  } else if(t.scene==='gaudi'){
+    rect(0,0,W,96,'#9fdcff');
+    rect(10,26,60,44,'#c75b3a'); for(let y=28;y<70;y+=6){ rect(10,y,60,2,'#3e9e5a'); for(let x=12;x<70;x+=6) R(x,y,2,2,'#ffd23f'); }
+    rect(70,10,10,60,'#c75b3a'); for(let y=12;y<70;y+=5) rect(70,y,10,2,'#3e9e5a'); rect(68,6,14,5,'#3e9e5a'); rect(73,1,4,5,'#ffd23f');
+    for(let i=0;i<4;i++){ rect(16+i*14,40,6,10,'#2b5d8a'); }
+    rect(0,70,W,26,'#6fbf5f');
+    drawGuy(dancePose,{...lk, x:40, y:GROUND-16, swing:Math.sin(now/110)*4});
+    label('El Capricho de Gaudí, Comillas');
+  } else {
+    for(let y=0;y<60;y++) rect(0,y,W,1, y<20?'#ff9f6b':y<40?'#ffb88c':'#ffd2a8');
+    disc(70,52,8,'#ffe066');
+    rect(0,56,W,40,'#2f6f9a'); for(let i=0;i<8;i++) rect(((i*14-now/50)%110+110)%110-10,62+(i%3)*8,8,1,'#7fc4e8');
+    for(let y=64;y<96;y++) rect(0,y,Math.round(46-(y-64)*0.2),1,'#5f9e5a');
+    rect(10,38,10,26,'#fff'); rect(10,46,10,3,'#e2463f'); rect(10,56,10,3,'#e2463f'); rect(9,32,12,6,'#3b3b3b'); rect(11,33,8,4,'#ffe9a8'); rect(8,30,14,2,'#e2463f');
+    if(Math.floor(now/600)%2){ ctx.fillStyle='rgba(255,240,170,.35)'; ctx.beginPath(); ctx.moveTo(21,34); ctx.lineTo(96,22); ctx.lineTo(96,48); ctx.fill(); }
+    drawGuy(POSES.cielo,{...lk, x:34, y:48, face:'o', swing:6+Math.sin(now/90)*3});
+    label(t.name);
+  }
+}
+
+// ---- tocar la pantalla ----
+$('screen').addEventListener('pointerdown',e=>{
+  if(e.target.closest && e.target.closest('.bubble')) return;
+  if(game){ gameTap(); return; }
+  if(S.mode==='over'){ showOver(); return; }
+  if(anim) return;
+  const r=cv.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*W, y=(e.clientY-r.top)/r.height*H;
+  if(S.floorGift && !S.sleeping && Math.abs(x-(S.floorGift.x+4))<9 && y>GROUND-16){ collectGift(); return; }
+  if(S.mode==='wine'){ say(pick(WINE_LINES)); return; }
+  if(S.sleeping){ say('zzz... cinco minutitos más... zzz'); return; }
+  if(Math.abs(x-guyX)<12 && y>GROUND-46){
+    const now=Date.now();
+    floating.push({x:guyX-3,y:GROUND-40,t0:performance.now(),kind:'heart'});
+    if(now-S.lastPat>20000){ S.stats.happy=clamp(S.stats.happy+3); S.lastPat=now; }
+    beep(990,.05); say(pick(PAT_LINES),3500); updateBars(); return;
+  }
+});
+function collectGift(){
+  const g=S.floorGift; S.floorGift=null; S.gifts[g.type]=(S.gifts[g.type]||0)+1; jingle(true);
+  if(g.type==='nota'){ const n=pick(NOTES); S.notes.push(n); if(S.notes.length>30) S.notes.shift(); modal(`<h2>💌 Una nota para ti</h2><p class="note">${n}</p><p style="text-align:right">— el Bailarín</p><div class="opts"><button data-x>Guardar en mi colección</button></div>`); $('card').querySelector('[data-x]').onclick=closeModal; }
+  else say(`¡Un regalo para ti, María! ${GIFT_TYPES[g.type].e} (lo he guardado en tu colección)`);
+  save();
+}
+function showStatus(){
+  const s=S.stats, days=Math.floor((Date.now()-S.born)/86400000);
+  const rows=BARS.map(([k,ic,n])=>`<span>${ic} ${n}</span><div class="tr"><div class="fi ${s[k]<25?'low':s[k]<50?'mid':''}" style="width:${s[k]}%;position:absolute;left:0;top:0;bottom:0"></div></div><span>${Math.round(s[k])}</span>`).join('');
+  const gifts=Object.entries(GIFT_TYPES).map(([k,g])=>`<div><b>${g.e}</b>${g.n}: ${S.gifts[k]||0}</div>`).join('');
+  const notes = S.notes.length? S.notes.slice(-5).reverse().map(n=>`<div class="note">${n}</div>`).join('') : '<p><small>Aún no te ha dejado notas. Cuídalo bien.</small></p>';
+  const left = 3*3600000 - (Date.now()-S.lastCuddle);
+  modal(`<h2>📋 Estado del Bailarín</h2>
+    <p>Lleva <b>${days+1}</b> día${days?'s':''} contigo${S.generation>1?` (es tu Bailarín nº ${S.generation})`:''}.</p>
+    <div class="st">${rows}</div>
+    <p>❤️ ${left>0?`Podrás acostarte con él en ${Math.ceil(left/60000)} min.`:'Está disponible para acostarse contigo.'}</p>
+    <h2 style="font-size:18px;margin-top:12px">🎁 Tu colección</h2><div class="gifts">${gifts}</div>${notes}<h2 style="font-size:18px;margin-top:12px">🚐 Postales de Cantabria</h2>${postales()}
+    <div class="opts"><button data-x>Cerrar</button></div>`);
+  $('card').querySelector('[data-x]').onclick=closeModal;
+}
+function showOver(){
+  $('bubble').classList.remove('show');
+  const t = S.cause==='tinder'
+    ? `<p>Lo tenías sanísimo, pero sin cariño... y <b>se ha abierto un Tinder</b>.</p><p>Su bio dice: <i>"Bailarín, 27. De Valladolid, vivo en Santoña. Surf, danza y llorar en la playa. Busco a alguien que me valore."</i></p>`
+    : `<p>Pasó 24 horas <b>bebiendo vino en la calle</b> y nadie fue a rescatarlo. Ahora vive en el banco y da clases de contemporáneo a las palomas.</p>`;
+  modal(`<div class="over"><div class="big">GAME OVER</div>${t}<p><small>Tu colección de regalos se conserva. (Toca fuera para ver la escena.)</small></p><div class="opts"><button data-new>Adoptar un Bailarín nuevo</button></div></div>`);
+  $('card').querySelector('[data-new]').onclick=()=>{ S=fresh(S); S.introSeen=true; guyX=48; save(); closeModal(); updateBars(); say('Hola, María. Soy el Bailarín. Esta vez cuídame, ¿vale? 🥺',6000); };
+}
+
+$('menu').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||b.disabled) return; beep(600,.04); ACTIONS[b.dataset.a](); });
+
+// ====================== FRASES ======================
+const LINES = [
+  'Hoy he llorado haciendo un plié. Normal.',
+  'No estoy tumbado en el suelo, estoy explorando mi relación con la gravedad.',
+  'María, ¿has visto mi kinesfera? Creo que la he perdido.',
+  'Me duele el alma. Y el isquio.',
+  'Tengo agujetas emocionales.',
+  'Si me ves quieto, es una pieza conceptual.',
+  'Necesito un açaí bowl y validación.',
+  'Mi tabla de surf y yo tenemos una relación abierta con el mar.',
+  'Respira. Contrae. Suelta. Llora.',
+  'No soy dramático. Soy contemporáneo.',
+  'La arena en el pelo es parte del vestuario.',
+  'El salitre me deja el pelo increíble. Lo sé.',
+  '¿Bailamos? Bueno, yo bailo y tú me miras con admiración.',
+  'Las olas también son coreografía, pero sin ensayos.',
+  'Hoy no improviso: hoy SIENTO.',
+  'He hecho un solo de 20 minutos con una silla. La silla ha estado increíble.',
+  'Mi signo es Escorpio, ascendente arabesque.',
+  'Lo de tirarme al suelo no es una caída, es una decisión artística.',
+  'Hoy me siento muy Martha Graham: contraído.',
+  'Si un bailarín cae en el bosque y nadie lo ve, ¿sigue siendo danza contemporánea?',
+  // datos de coreógrafos
+  'Dato: Pina Bausch dirigió el Tanztheater Wuppertal desde 1973. Mi diosa.',
+  'Pina Bausch decía: "No me interesa cómo se mueve la gente, sino qué la mueve". Yo me muevo por ti, María.',
+  'Dato: Café Müller, de Pina Bausch, sale en la peli "Hable con ella" de Almodóvar. Lloré. Obvio.',
+  'Dato: a Martha Graham la llaman la madre de la danza moderna. Su técnica se basa en contraer y soltar.',
+  'Dato: Merce Cunningham creaba coreografías al azar, tirando dados. Como yo eligiendo qué cenar.',
+  'Dato: Merce Cunningham trabajó toda su vida con el compositor John Cage, que también fue su pareja.',
+  'Dato: Akram Khan mezcla el kathak, una danza clásica india, con la danza contemporánea.',
+  'Dato: Akram Khan coreografió parte de la ceremonia de apertura de los Juegos Olímpicos de Londres 2012.',
+  'Dato: Ohad Naharin creó el lenguaje de movimiento Gaga en la Batsheva Dance Company. Gaga. Como yo por ti.',
+  'Dato: en las piezas de Sharon Eyal se baila casi todo el rato de puntillas. Mis gemelos tiemblan solo de pensarlo.',
+  'Dato: Isadora Duncan bailaba descalza y con túnicas cuando lo normal eran las zapatillas de punta.',
+  'Dato: en 1970 Trisha Brown hizo que un bailarín bajara andando por la fachada de un edificio. Con arnés, tranquila.',
+  'Dato: Alvin Ailey estrenó "Revelations" en 1960 y todavía se baila hoy.',
+  'Dato: Anne Teresa De Keersmaeker fundó la compañía Rosas en Bruselas. "Rosas danst Rosas" es un clásico.',
+  'Dato: Hofesh Shechter compone él mismo la música de muchas de sus piezas. Yo compongo suspiros.',
+  'Dato: Nacho Duato dirigió la Compañía Nacional de Danza de España durante 20 años.',
+  'Dato: Crystal Pite es canadiense y su compañía se llama Kidd Pivot. Qué nombre tan bueno.',
+  'Dato: William Forsythe dirigió el Ballett Frankfurt y desmontó el ballet clásico pieza a pieza.',
+  // Cantabria
+  'Me apetece un sobao pasiego. O tres. Por la cultura.',
+  'Dato cántabro: Santillana del Mar es la villa de las tres mentiras: ni es santa, ni llana, ni tiene mar.',
+  'Sueño con hacer un solo en lo alto de los Picos de Europa, con viento en la melena.',
+  'En Cantabria, cuando llueve, yo lo llamo "ensayo con efectos especiales".',
+  'Dato: la cueva de Altamira está en Santillana del Mar. Los bisontes pintados ya tenían mucho movimiento.',
+  'Las rabas de Santander son mi combustible secreto.',
+  'Quiero bailar en la playa del Sardinero al atardecer. Tú grabas, yo sufro artísticamente.',
+  'La furgo está lista. Solo falta que me digas a dónde vamos.',
+  'Un día te llevo a Liébana a ver los Picos. Llevo el bañador por si acaso.',
+  'Dato: el orujo de Liébana es típico de Potes. Yo solo lo huelo, que mañana tengo ensayo.',
+  // Valladolid y Santoña
+  'Soy de Valladolid pero vivo en Santoña: Pucela en el corazón, salitre en el pelo.',
+  'Echo de menos el lechazo de Valladolid... pero las anchoas de Santoña me consuelan.',
+  'Dato: Santoña es famosa por sus anchoas. Yo, por mis arabesques.',
+  'En Valladolid no hay olas. Por eso me vine a vivir a Santoña.',
+  'Desde Santoña se ve Laredo al otro lado de la bahía. Un día cruzo bailando.',
+  'La playa de Berria es mi segunda casa. La primera es el suelo del estudio.',
+  'Mi madre me llama desde Valladolid para preguntar si como bien. Dile que sí, María.',
+];
+const NEED = {
+  food:['Tengo hambre. Un bailarín no vive solo de aplausos.','María... ¿hay açaí? Pregunto por un amigo (yo).'],
+  energy:['Estoy taaan cansado... necesito dormir como un cisne.','Mis párpados están haciendo un adagio.'],
+  clean:['Tengo arena en sitios que no sabía que existían.','Creo que me sigue una mosca. Es mi fan.'],
+  happy:['Me siento un poco gris... ¿bailamos o surfeamos?','Necesito arte. O mimos. O las dos cosas.'],
+  fit:['Me noto fofito. Necesito surfear o bailar YA.','Mis abdominales se han ido de gira sin mí.'],
+  anemic:['Estoy pálido... mi estado anémico pide que te acuestes conmigo. 🩸','Me falta hierro... y cariño. Sobre todo cariño.'],
+};
+const PAT_LINES=['Ay, qué gusto. Sigue.','Eso ha sido muy Pina Bausch.','Me has tocado el alma (y el hombro).','¡Más mimos, menos críticas!','Siento una contracción... de felicidad.','*suspira dramáticamente*'];
+const WINE_LINES=['María... el arte no paga el alquiler... hic.','Este vino es muy contemporáneo: no tiene ningún sentido.','Brindo por las coreografías que nunca hicimos... hic.','No estoy borracho, estoy explorando el suelo de la calle.','¿Me rescatas? Ducha, comida y una ola. Por favor.'];
+let nextLine=performance.now()+8000;
+function chatter(now){
+  if(now<nextLine || anim || game || S.mode==='over' || S.sleeping || $('modal').classList.contains('show')) return;
+  nextLine = now + 22000 + Math.random()*16000;
+  if(S.mode==='wine'){ say(pick(WINE_LINES)); return; }
+  const low = BARS.filter(([k])=>S.stats[k]<30).map(b=>b[0]);
+  if(low.length && Math.random()<.6){ say(pick(NEED[pick(low)])); return; }
+  if(Date.now()-S.lastTrip>20*60000 && S.stats.energy>=15 && Math.random()<(Object.keys(S.trips).length?0.3:0.5)){ proposeTrip(); return; }
+  say(pick(LINES), 7000);
+}
+
+// ====================== BUCLE ======================
+let lastFrame=performance.now(), simAcc=0, saveAcc=0, uiAcc=0;
+function loop(now){
+  const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
+  simAcc+=dt; saveAcc+=dt; uiAcc+=dt;
+  if(simAcc>=1){
+    const before=S.mode, wasSleeping=S.sleeping;
+    step(simAcc/3600); simAcc=0;
+    if(before!==S.mode){ anim=null; game=null; $('game').classList.remove('show');
+      if(S.mode==='wine') say('Me he ido... a la calle... con un cartón de vino. 🍷 Rescátame, María.',8000);
+      if(S.mode==='over') showOver(); }
+    if(wasSleeping && !S.sleeping) say('¡Buenos días! He soñado que bailaba en el mar.');
+  }
+  if(uiAcc>=0.5){ uiAcc=0; updateBars(); }
+  if(saveAcc>=5){ saveAcc=0; save(); }
+  tickGame(dt); chatter(now);
+  render(now);
+  requestAnimationFrame(loop);
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); else { // al volver, ponerse al día
+  let hours=Math.min((Date.now()-S.last)/3600000,24*30); const before=S.mode;
+  while(hours>0 && S.mode!=='over'){ const d=Math.min(1/60,hours); step(d); hours-=d; } S.last=Date.now();
+  if(before!==S.mode){ anim=null; game=null; $('game').classList.remove('show'); if(S.mode==='over') showOver(); }
+  updateBars(); }});
+window.addEventListener('pagehide',save);
+
+// inicio
+updateBars(); save();
+if(S.mode==='over') showOver();
+else if(!S.introSeen){
+  modal(`<h2>¡Hola, María! 👋</h2><p>Te presento al <b>Bailarín</b>: pelo largo, rubio, ojos claros, de Valladolid pero vive en Santoña. Surfero y bailarín contemporáneo muy, muy intenso.</p>
+  <p>Ahora es tu responsabilidad. Dale de comer, llévalo a surfear y a bailar, dúchalo y dale mucho cariño.</p>
+  <p>Si lo descuidas... acabará <b>bebiendo vino en la calle</b>. Y si no le das amor... <b>se abrirá un Tinder</b>.</p>
+  <div class="opts"><button data-x>Lo cuidaré 💖</button><button data-h>¿Cómo se juega?</button></div>`);
+  $('card').querySelector('[data-x]').onclick=()=>{ S.introSeen=true; save(); closeModal(); say('Hola, María. Soy el Bailarín. Hoy me siento muy... contemporáneo.',6000); };
+  $('card').querySelector('[data-h]').onclick=()=>{ S.introSeen=true; save(); ACTIONS.help(); };
+} else if(S.welcome==='wine'){ say('Mientras no estabas... me fui a la calle con un cartón de vino. 🍷 Rescátame.',8000); }
+else setTimeout(()=>say(pick(['¡María! Has vuelto. Te he echado de menos en espiral.','¡Hola! Llevaba un rato haciendo pliés esperándote.','¡Por fin! Tenía una pieza preparada para ti.'])),800);
+requestAnimationFrame(loop);
+
+
+// ganchos de prueba
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+window.__B = {get S(){return S;}, set S(v){S=v;}, step, startTrip, proposeTrip, TRIPS, drawGuy, sceneBeach, ctx, save, POSES, setPose, ACTIONS, collectGift, spawnGift};
+})();
+</script>
+
+</body>
+</html>
