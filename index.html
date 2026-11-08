@@ -42,6 +42,9 @@ h1{margin:0 0 6px;text-align:center;font-size:24px;letter-spacing:2px;color:var(
    text-shadow:2px 2px 0 var(--ink)}
 .sub{text-align:center;font-size:13px;margin-bottom:8px;opacity:.75}
 .clock{text-align:center;font-size:16px;font-weight:700;margin:-2px 0 8px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.swaprow{display:flex;justify-content:center;margin:2px 0 8px}
+#swap{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 14px;box-shadow:0 3px 0 var(--btn-dark);cursor:pointer}
+#swap:active{transform:translateY(2px);box-shadow:0 1px 0 var(--btn-dark)}
 .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;margin:0 6px 10px}
 .bar{display:flex;align-items:center;gap:4px;font-size:12px}
 .bar .ic{width:18px;text-align:center;font-size:14px}
@@ -101,6 +104,7 @@ canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image
 <div class="egg">
   <h1>EL BAILARÍN</h1>
   <div class="sub" id="sub">la mascota de María</div>
+  <div class="swaprow"><button id="swap" type="button"></button></div>
   <div class="clock" id="clock"></div>
   <div class="bars" id="bars"></div>
   <div class="screenwrap" id="screen">
@@ -1141,6 +1145,9 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); e
 window.addEventListener('pagehide',save);
 
 // inicio
+function goPet(p){ try{ save(); localStorage.setItem('el-bailarin-last-pet', p); }catch(e){} location.hash=p; location.reload(); }
+$('swap').textContent = IS_M ? '🩰 Cambiar al Bailarín' : '🚵‍♀️ Cambiar a María';
+$('swap').addEventListener('click',()=>goPet(IS_M?'bailarin':'maria'));
 var lockModal=false;
 function showSelector(){
   lockModal=true;
@@ -1148,7 +1155,7 @@ function showSelector(){
   <div class="opts"><button data-p="bailarin">🩰 <b>Al Bailarín</b><br><small>Surfero rubio de Valladolid que vive en Santoña. Lo cuida María.</small></button>
   <button data-p="maria">🚵‍♀️ <b>A María</b><br><small>1,61 m de deporte de riesgo, micro y Voll-Damm. La cuida el Bailarín.</small></button></div>
   <p><small>Cada personaje tiene su propia partida guardada.</small></p>`);
-  $('card').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{ try{ localStorage.setItem('el-bailarin-last-pet', b.dataset.p); }catch(e){} location.hash=b.dataset.p; location.reload(); });
+  $('card').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>goPet(b.dataset.p));
 }
 if(IS_M){ document.querySelector('h1').textContent='MARÍA'; document.querySelector('.foot').textContent='Toca a María para darle mimos · se guarda sola'; document.querySelector('[data-a=surf]').innerHTML='<span class="e">🚵</span>Bici'; document.querySelector('[data-a=dance]').innerHTML='<span class="e">🎤</span>Micro'; }
 updateBars(); save();
