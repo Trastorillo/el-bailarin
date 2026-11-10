@@ -85,6 +85,21 @@ input{flex:1}
 @keyframes spin{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
 @media (orientation:portrait) and (max-width:700px){body:not(.portrait-ok) #rot{display:flex}}
 .hint{font-size:16px;color:var(--dim)}
+#unread{display:none;margin-left:5px;background:#ff3b5c;color:#fff;font-weight:normal;padding:0 5px;font-size:16px}
+#unread.on{display:inline-block}
+#bDuty.duty{background:#1f8f78}
+#chat{position:absolute;top:0;right:0;bottom:0;z-index:28;width:min(340px,62vw);background:var(--panel);border-left:3px solid var(--line);box-shadow:-4px 0 0 rgba(0,0,0,.4);display:none;flex-direction:column}
+#chat.on{display:flex}
+#chat .ch{display:flex;align-items:center;padding:4px 8px;background:#22142f;color:var(--gold);font-size:20px}
+#chat .ch .btn{margin-left:auto;padding:0 8px}
+#msgs{flex:1;overflow:auto;padding:6px 8px;display:flex;flex-direction:column;gap:5px}
+.msg{display:flex;gap:6px;align-items:flex-start;font-size:18px;line-height:1.05}
+.msg canvas{width:24px;height:24px;image-rendering:pixelated;flex:none;background:#1e1229}
+.msg .w{color:#9fffe9;font-size:15px}
+.msg.mine .w{color:var(--gold)}
+.msg .tx{word-break:break-word;-webkit-user-select:text;user-select:text}
+#chat form{display:flex;gap:4px;padding:5px;border-top:2px solid var(--line)}
+.sumf{width:22px;height:22px;image-rendering:pixelated;flex:none}
 </style>
 </head>
 <body>
@@ -96,6 +111,9 @@ input{flex:1}
     <button class="btn ok" id="bNew">➕ Cliente</button>
     <button class="btn" id="bClients">📇 Clientes</button>
     <button class="btn gold" id="bMe">🧑‍🍳 Yo</button>
+    <button class="btn" id="bDuty">🏠 En casa</button>
+    <button class="btn" id="bBar">📋 Bar</button>
+    <button class="btn" id="bChat">💬 Chat<b id="unread"></b></button>
     <button class="btn" id="bMore">⋯</button>
     <span class="sp"></span>
     <span id="status"><i></i><span>conectando…</span></span>
@@ -104,6 +122,8 @@ input{flex:1}
     <canvas id="scene"></canvas>
     <div id="pop"></div>
     <div id="toasts"></div>
+    <div id="chat"><div class="ch">💬 Chat de camareros<button class="btn" id="chatX">✕</button></div><div id="msgs"></div>
+      <form id="chatF"><input id="chatIn" maxlength="200" placeholder="Escribe a los demás…" autocomplete="off"><button class="btn ok">Enviar</button></form></div>
   </div>
 </div>
 <div id="rot"><div class="ph">📱</div><div>Gira el móvil para ver el bar en grande</div><button class="btn" onclick="document.body.classList.add('portrait-ok');resize()">Seguir así</button></div>
@@ -205,7 +225,7 @@ async function initialSync(){
     if(!res.ok)throw new Error('http '+res.status);
     const txt=await res.text();
     for(const line of txt.split('\n')){if(!line.trim())continue;try{handleNtfy(JSON.parse(line),false)}catch(e){}}
-    synced=true; refreshUI(); openStream(); flush();
+    synced=true; refreshUI(); openStream(); flush(); heartbeat(true);
     setTimeout(republish, 3000+Math.random()*9000);
     setInterval(republish, 45*60e3);
   }catch(e){
@@ -224,6 +244,7 @@ window.addEventListener('online',()=>{flush();if(synced)openStream()});
 function prunable(k,r){
   const now=Date.now();
   if(r.v===null) return now-r.t>7*86400e3;
+  if(k.startsWith('m:')) return now-r.t>3*86400e3;
   if(k.startsWith('d:')){const [,cid,at]=k.split(':');const b=rec('b:'+cid);return !(b&&b.on&&String(b.at)===at) && now-r.t>36*3600e3}
   return false;
 }
@@ -232,6 +253,7 @@ function republish(){
   for(const k of Object.keys(DB.recs)){
     const r=DB.recs[k];
     if(prunable(k,r)){delete DB.recs[k];continue}
+    if(k.startsWith('m:')) continue;
     if((seen[k]||0) > now-REPUBLISH_AGE) continue;
     if(DB.pending.some(p=>p.k===k)) continue;
     if(n++>80)break;
@@ -258,6 +280,18 @@ function drunkLevel(id){
   return u<0.6?0:u<1.6?1:u<3?2:u<4.5?3:u<6?4:5;
 }
 const me = () => DB.me ? rec('w:'+DB.me) : null;
+const pres = id => rec('p:'+id);
+const onDuty = id => {const p=pres(id);return !!(p&&p.d&&Date.now()-p.s<14*3600e3)};
+const atHomeOnline = id => {const p=pres(id);return !!(p&&!p.d&&Date.now()-p.s<12*60e3)};
+const chatMsgs = () => Object.keys(DB.recs).filter(k=>k.startsWith('m:')&&rec(k)).map(k=>rec(k)).sort((a,b)=>a.t-b.t).slice(-80);
+const VSPOTS=[[0.9,9.6],[3.4,9.6],[6.9,6.15]];
+let lastBeat=0;
+function heartbeat(force){
+  if(!DB.me||!me())return; if(!force&&(document.visibilityState!=='visible'||Date.now()-lastBeat<4*60e3))return;
+  lastBeat=Date.now(); const p=pres(DB.me)||{}; put('p:'+DB.me,{d:p.d?1:0,s:Date.now()});
+}
+function setDuty(d){if(!me())return chooseWaiter();lastBeat=Date.now();put('p:'+DB.me,{d:d?1:0,s:Date.now()},d?`${myName()} entra de servicio`:`${myName()} se va a casa`);updateDutyBtn()}
+function updateDutyBtn(){const b=$('#bDuty');const d=DB.me&&onDuty(DB.me);b.textContent=d?'🟢 De servicio':'🏠 En casa';b.classList.toggle('duty',!!d)}
 const myName = () => (me()||{}).n || 'Alguien';
 
 // ====================== ESCENA ======================
@@ -583,8 +617,10 @@ function frame(t){
   const now=Date.now();
   HITS.length=0;
   // camareros detrás de la barra
-  const ws=waiters().slice(0,MAX_WAITERS);
-  ws.forEach((w,n)=>{const i=WSLOTS[n];const [x,y]=P(i,2.15);
+  const all=waiters(), WPOS={};
+  const ws=all.filter(w=>onDuty(w.id)).slice(0,MAX_WAITERS);
+  const home=all.filter(w=>!onDuty(w.id)&&atHomeOnline(w.id));
+  ws.forEach((w,n)=>{const i=WSLOTS[n];const [x,y]=P(i,2.15);WPOS[w.id]=[x,y-38];
     const bob=Math.sin(t/700+n*2)>0.6?1:0;
     drawChar(ctx,w.a,x,y-bob,{blink:Math.sin(t/900+n*3)>0.985,t});
     HITS.push({kind:'w',id:w.id,x0:x-8,y0:y-30,x1:x+8,y1:y-6});
@@ -598,6 +634,10 @@ function frame(t){
   SPOTS.forEach((s,n)=>{if(s.st)L.push({d:s.i+s.j-.02,f:()=>drawStool(ctx,s.i,s.j)})});
   TABLES.forEach(tb=>L.push({d:tb.i+tb.j,f:()=>drawTable(ctx,tb)}));
   L.push({d:2.0+0.85,f:()=>drawJukebox(ctx,t)});
+  home.forEach((w,n)=>{const v=VSPOTS[n%VSPOTS.length];L.push({d:v[0]+v[1],f:()=>{
+    const [x,y]=P(v[0],v[1]);drawChar(ctx,w.a,x,y,{t,blink:Math.sin(t/950+n)>0.985});
+    HITS.push({kind:'w',id:w.id,x0:x-8,y0:y-32,x1:x+8,y1:y+2});WPOS[w.id]=[x,y-36];
+    const mine=w.id===DB.me; nameTag(ctx,x,y-30,'🏠 '+w.n,mine?'#ffd23f':'#c9b6d8');}})});
   for(const id of Object.keys(ANIM)){const A=ANIM[id];const c=cust(id);if(!c)continue;
     L.push({d:A.i+A.j+.05,f:()=>{
       const walking=A.path.length>0;
@@ -621,7 +661,7 @@ function frame(t){
   }
   L.sort((a,b)=>a.d-b.d).forEach(o=>o.f());
   // bocadillos de camareros y efectos
-  ws.forEach((w,n)=>{const S=SAY['w:'+w.id];if(S&&S.until>now){const [x,y]=P(WSLOTS[n],2.15);bubble(ctx,x,y-38,S.text)}});
+  for(const id in WPOS){const S=SAY['w:'+id];if(S&&S.until>now){const [x,y]=WPOS[id];bubble(ctx,x,y,S.text)}}
   for(let n=FX.length-1;n>=0;n--){const f=FX[n];const k=(now-f.t0)/1400;if(k>1){FX.splice(n,1);continue}
     const A=ANIM[f.id];if(!A)continue;const [x,y]=P(A.i,A.j,8);ctx.globalAlpha=1-k*k;ctx.font='9px serif';ctx.fillText(f.text,x+6,y-30-k*14);ctx.globalAlpha=1}
   // frases al azar
@@ -650,6 +690,7 @@ function headIcon(a,size){
 function bodyIcon(a){const c=document.createElement('canvas');c.width=20;c.height=30;drawChar(c.getContext('2d'),a,10,29,{});return c}
 function toast(text){const t=document.createElement('div');t.className='toast';t.textContent=text;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),4200);while($('#toasts').children.length>4)$('#toasts').firstChild.remove()}
 function onRemote(m){
+  if(m.k.startsWith('m:')&&m.v){const w=rec('w:'+m.v.by);say('w:'+m.v.by,m.v.tx,7000);if(!chatOpen())toast('💬 '+(w?w.n:'?')+': '+m.v.tx);renderChat();return}
   if(m.m)toast(m.m);
   if(m.k.startsWith('d:')&&m.v){const cid=m.k.split(':')[1];const D=DRINKS[m.v.ty];if(D)FX.push({id:cid,text:'+'+D.e,t0:Date.now()});
     if(m.v.by)say('w:'+m.v.by,'¡Marchando!',2500)}
@@ -694,6 +735,38 @@ $('#bClients').onclick=e=>dropdown(e.currentTarget,'Clientes habituales',d=>{
 });
 $('#bNew').onclick=()=>{closeDrop();closePop();editCustomer(null)};
 $('#bMe').onclick=()=>{closeDrop();closePop();if(me())editWaiter(DB.me);else chooseWaiter()};
+$('#bDuty').onclick=()=>{closeDrop();closePop();setDuty(!(DB.me&&onDuty(DB.me)))};
+function faceIcon(lv){const c=document.createElement('canvas');c.width=11;c.height=11;c.className='sumf';drawFace(c.getContext('2d'),1,1,lv);return c}
+const hm=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+$('#bBar').onclick=e=>dropdown(e.currentTarget,'Ahora en el bar',d=>{
+  const list=inBar(), all=waiters();
+  const duty=all.filter(w=>onDuty(w.id)).map(w=>w.n), home=all.filter(w=>!onDuty(w.id)&&atHomeOnline(w.id)).map(w=>w.n);
+  const info=document.createElement('div');info.className='empty';
+  let last=0;for(const k in DB.recs){if(!k.startsWith('p:')&&!k.startsWith('m:'))last=Math.max(last,DB.recs[k].t)}
+  info.textContent=`🟢 De servicio: ${duty.join(', ')||'nadie'}${home.length?' · 🏠 Mirando desde casa: '+home.join(', '):''}${last?' · Último cambio: '+hm(last):''}`;
+  d.appendChild(info);
+  if(!list.length){const em=document.createElement('div');em.className='empty';em.textContent='No hay nadie en el bar.';d.appendChild(em)}
+  list.forEach(c=>{const ds=drinksOf(c.id),lv=drunkLevel(c.id),inv=ds.filter(x=>!x.p).length;
+    item(d,faceIcon(lv),c.n,`${LEVELS[lv]} · desde ${hm(visit(c.id).at)} · ${ds.length?ds.map(x=>(DRINKS[x.ty]||{}).e||'').join(''):'aún nada'}${inv?' · 🎁'+inv:''}`,()=>{closeDrop();openPop(c.id)})});
+});
+const chatOpen=()=>$('#chat').classList.contains('on');
+function renderChat(){
+  const list=chatMsgs(); const read=DB.chatRead||0;
+  const un=list.filter(m=>m.t>read&&m.by!==DB.me).length;
+  const b=$('#unread'); b.textContent=un; b.classList.toggle('on',un>0&&!chatOpen());
+  if(!chatOpen())return;
+  const box=$('#msgs'); box.innerHTML='';
+  if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent='Aún no hay mensajes. Los mensajes solo los veis los camareros.';box.appendChild(e)}
+  for(const m of list){const w=rec('w:'+m.by);const row=document.createElement('div');row.className='msg'+(m.by===DB.me?' mine':'');
+    row.appendChild(headIcon(w?w.a:{}));const col=document.createElement('div');const h=document.createElement('div');h.className='w';h.textContent=(w?w.n:'¿?')+' · '+hm(m.t);
+    const tx=document.createElement('div');tx.className='tx';tx.textContent=m.tx;col.appendChild(h);col.appendChild(tx);row.appendChild(col);box.appendChild(row)}
+  box.scrollTop=box.scrollHeight;
+  if(list.length){DB.chatRead=Math.max(read,list[list.length-1].t);save()}
+}
+$('#bChat').onclick=()=>{closeDrop();closePop();$('#chat').classList.toggle('on');renderChat();if(chatOpen()&&matchMedia('(pointer:fine)').matches)$('#chatIn').focus()};
+$('#chatX').onclick=()=>{$('#chat').classList.remove('on');renderChat()};
+$('#chatF').onsubmit=e=>{e.preventDefault();const i=$('#chatIn');const tx=i.value.trim();if(!tx)return;if(!me()){chooseWaiter();return}
+  put('m:'+rid(),{by:DB.me,tx,t:Date.now()});say('w:'+DB.me,tx,7000);i.value='';renderChat()};
 $('#bMore').onclick=e=>dropdown(e.currentTarget,'Más',d=>{
   item(d,null,'🧑‍🍳 Cambiar de camarero',null,()=>{closeDrop();chooseWaiter()});
   item(d,null,'🧹 Cerrar el bar',`Todos se van (${inBar().length} dentro)`,()=>{closeDrop();confirmBox('¿Cerrar el bar?','Todos los clientes que quedan saldrán del bar.','🧹 Cerrar',()=>{const l=inBar();l.forEach((c,n)=>leave(c.id,true));put('x:close',{t:Date.now()},myName()+' ha cerrado el bar');toast('Bar cerrado')})});
@@ -724,6 +797,7 @@ function leave(id,quiet){
 function serve(id,ty,label){
   const b=visit(id),c=cust(id);if(!b)return;
   const paid=payMode(id); const D=DRINKS[ty];
+  if(DB.me&&!onDuty(DB.me)){setDuty(1);toast('Ahora estás de servicio')}
   const lab=label||D.n;
   put('d:'+id+':'+b.at+':'+rid(),{ty,lab,p:paid?1:0,by:DB.me,t:Date.now()},`${myName()}: ${D.e} ${lab} para ${c.n}${paid?'':' (invitada)'}`);
   FX.push({id,text:'+'+D.e,t0:Date.now()});
@@ -836,7 +910,7 @@ function editWaiter(id){
       const wid=id||rid();
       if(!id&&waiters().length>=MAX_WAITERS){toast('Ya hay '+MAX_WAITERS+' camareros');return false}
       put('w:'+wid,{n,a,ct:w?w.ct:Date.now()},w?null:`¡${n} se une al equipo!`);
-      DB.me=wid; save(); refreshUI();
+      DB.me=wid; save(); if(!w)heartbeat(true); refreshUI();
     },
     onDelete:w?()=>{put('w:'+id,null,`${w.n} deja el equipo`);if(DB.me===id){DB.me=null;save();setTimeout(chooseWaiter,200)}}:null});
 }
@@ -848,7 +922,7 @@ function chooseWaiter(){
   const fill=()=>{
     const box=m.querySelector('.who');box.innerHTML='';
     for(const w of waiters()){const b=document.createElement('button');b.className='btn'+(w.id===DB.me?' gold':'');b.appendChild(bodyIcon(w.a));const s=document.createElement('span');s.textContent=w.n;b.appendChild(s);
-      b.onclick=()=>{DB.me=w.id;save();m.remove();whoModal=null;toast('Hola, '+w.n);refreshUI()};box.appendChild(b)}
+      b.onclick=()=>{DB.me=w.id;save();m.remove();whoModal=null;toast('Hola, '+w.n);heartbeat(true);refreshUI()};box.appendChild(b)}
     if(waiters().length<MAX_WAITERS){const b=document.createElement('button');b.className='btn ok';b.innerHTML='<span style="font-size:40px;line-height:84px">➕</span><span>Soy nuevo</span>';b.onclick=()=>{m.remove();whoModal=null;editWaiter(null)};box.appendChild(b)}
     m.querySelector('[data-st]').textContent=synced?`Hay ${waiters().length} de ${MAX_WAITERS} camareros.`:'Cargando el bar…';
   };
@@ -860,18 +934,22 @@ function help(){
   <p>👆 <b>Pulsa sobre un cliente</b> para servirle: elige si paga o le invitan, y luego la bebida o lo de siempre.</p>
   <p>🙂 La carita encima de cada cliente se va emborrachando según lo que lleva (cada copa deja de contar a las 2,5 h).</p>
   <p>👋 <b>Se va</b> cuando sale del bar. ➕ <b>Cliente</b> crea uno nuevo con su aspecto, dos frases típicas y tres cosas que suele pedir.</p>
-  <p>📡 Los 3 camareros ven los cambios en tiempo real. Si no hay cobertura, se guarda y se envía al volver.</p>
+  <p>📡 Los 3 camareros ven los cambios en tiempo real, también desde casa. Si no hay cobertura, se guarda y se envía al volver.</p>
+  <p>🟢 <b>De servicio</b>: sales detrás de la barra. 🏠 <b>En casa</b>: mientras tengas la app abierta, tu avatar aparece en el salón. 📋 <b>Bar</b> resume quién hay, cuánto ha bebido y qué.</p>
+  <p>💬 <b>Chat</b>: mensajes entre camareros; salen también en un bocadillo sobre vuestro avatar.</p>
   <p class="hint">Consejo: en iPhone, Compartir → "Añadir a pantalla de inicio" para abrirla como app a pantalla completa.</p>
   <div class="acts"><button class="btn ok" data-x>¡Entendido!</button></div>`);
   m.querySelector('[data-x]').onclick=()=>m.remove();
 }
-function refreshUI(){uiDirty=true;if(openDrop)renderDrop();if(popId)renderPop();if(whoModal&&whoModal._fill)whoModal._fill();
+function refreshUI(){uiDirty=true;updateDutyBtn();renderChat();if(openDrop)renderDrop();if(popId)renderPop();if(whoModal&&whoModal._fill)whoModal._fill();
   if(DB.me&&!me()&&synced&&DB.recs['w:'+DB.me]){DB.me=null;save();chooseWaiter()}}
 
 // ====================== ARRANQUE ======================
 resize();
 requestAnimationFrame(frame);
 setInterval(tickClock,15000);
+setInterval(()=>{heartbeat();updateDutyBtn()},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>heartbeat(),1500)});
 setInterval(()=>{if(popId)renderPop()},30000);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>buildStatic());
 initialSync();
