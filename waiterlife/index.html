@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WaiterLife">
 <meta name="theme-color" content="#1b1026">
-<link rel="manifest" href="manifest.webmanifest">
+<!-- sin manifest a propósito: así el icono de la pantalla de inicio guarda el enlace privado con su clave -->
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <title>WaiterLife</title>
@@ -206,7 +206,12 @@ const BURN_MS = 2.5*3600e3; // cada consumición deja de contar a las 2,5 h
 let DB = (()=>{try{const d=JSON.parse(lsGet(LSKEY));if(d&&d.recs)return d}catch(e){} return {recs:{},me:null,pending:[]}})();
 if(!DB.pending)DB.pending=[];
 let CLIENT = lsGet('wl-client'); if(!CLIENT){CLIENT=rid();lsSet('wl-client',CLIENT)}
-let saveT=null; function save(){clearTimeout(saveT);saveT=setTimeout(()=>lsSet(LSKEY,JSON.stringify(DB)),250)}
+let saveT=null; function saveNow(){clearTimeout(saveT);saveT=null;lsSet(LSKEY,JSON.stringify(DB))}
+function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250)}
+// guardar ya al salir o pasar a segundo plano, y pedir al navegador que no borre los datos
+window.addEventListener('pagehide',saveNow);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 const rec = k => {const r=DB.recs[k];return r?r.v:null};
 let uiDirty = true;
 function apply(k,v,t,c){
@@ -1096,6 +1101,8 @@ $('#bMore').onclick=e=>dropdown(e.currentTarget,'Más',d=>{
   item(d,null,'🧑‍🍳 Cambiar de camarero',null,()=>{closeDrop();chooseWaiter()});
   item(d,null,'🧹 Cerrar el bar',`Todos se van (${inBar().length} dentro)`,()=>{closeDrop();confirmBox('¿Cerrar el bar?','Todos los clientes que quedan saldrán del bar.','🧹 Cerrar',()=>{const l=inBar();l.forEach((c,n)=>leave(c.id,true));put('x:close',{t:Date.now()},myName()+' ha cerrado el bar');toast('Bar cerrado')})});
   item(d,null,'🔗 Pasar el enlace privado','Solo a los camareros',()=>{closeDrop();shareLink()});
+  item(d,null,'💾 Guardar copia de seguridad','Descarga los clientes y camareros en un archivo',()=>{closeDrop();exportBackup()});
+  item(d,null,'📂 Recuperar copia de seguridad',null,()=>{closeDrop();importBackup()});
   item(d,null,'ℹ️ Cómo funciona',null,()=>{closeDrop();help()});
 });
 document.addEventListener('pointerdown',e=>{if(openDrop&&!openDrop.contains(e.target)&&!e.target.closest('#top'))closeDrop()});
@@ -1297,7 +1304,8 @@ function help(){
   <p>🟢 <b>De servicio</b>: sales detrás de la barra. 🏠 <b>En casa</b>: mientras tengas la app abierta, los demás ven tu avatar en el salón. 📋 <b>Bar</b> resume quién hay, cuánto ha bebido y qué.</p>
   <p>🚪 Pulsa las puertas o las pestañas de abajo para ir a la sala y cocina (con Vidal), la terraza de atrás o la de alante. 🎉 <b>Evento</b> pone, por ejemplo, el partido en las teles.</p>
   <p>💬 <b>Chat</b>: directo entre móviles (no gasta el límite gratuito). Solo llega a quien tiene la app abierta a la vez y sale en un bocadillo sobre su avatar.</p>
-  <p class="hint">Consejo: en iPhone, Compartir → "Añadir a pantalla de inicio" para abrirla como app a pantalla completa.</p>
+  <p>💾 Los clientes se guardan en cada móvil y se reparten entre los tres. En ⋯ puedes guardar una copia de seguridad en un archivo.</p>
+  <p class="hint">Consejo: en iPhone, abre el enlace privado en Safari y luego Compartir → "Añadir a pantalla de inicio".</p>
   <div class="acts"><button class="btn ok" data-x>¡Entendido!</button></div>`);
   m.querySelector('[data-x]').onclick=()=>m.remove();
 }
@@ -1320,10 +1328,25 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>buildStati
 })();
 function lockScreen(){
   const m=modal(`<h3>🔒 Bar privado</h3><p>WaiterLife solo funciona con el enlace privado que comparten los camareros.</p>
-   <p>Ábrelo desde ese enlace, o pega aquí el enlace o la clave:</p><div class="row"><input data-k placeholder="https://…#k=… o la clave"><button class="btn ok" data-ok>Entrar</button></div>`);
+   <p>Ábrelo desde ese enlace, o pega aquí el enlace o la clave:</p>
+   <p class="hint">Si lo abriste desde un icono antiguo de la pantalla de inicio, bórralo, abre el enlace privado y vuelve a añadirlo a inicio desde ahí.</p><div class="row"><input data-k placeholder="https://…#k=… o la clave"><button class="btn ok" data-ok>Entrar</button></div>`);
   m.querySelector('[data-ok]').onclick=()=>{const v=m.querySelector('[data-k]').value.trim();const mm=/k=([A-Za-z0-9_-]{8,})/.exec(v)||/^([A-Za-z0-9_-]{8,})$/.exec(v);
     if(!mm){m.querySelector('[data-k]').style.borderColor='#ff4a4a';return}
     lsSet('wl-key',mm[1]);location.hash='k='+mm[1];location.reload()};
+}
+function exportBackup(){
+  const recs={};for(const k in DB.recs){if(/^[cwk]:/.test(k)&&DB.recs[k].v)recs[k]=DB.recs[k]}
+  const blob=new Blob([JSON.stringify({app:'waiterlife',v:1,at:Date.now(),recs})],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='waiterlife-copia-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  toast('Copia guardada ('+Object.keys(recs).filter(k=>k.startsWith('c:')).length+' clientes)');
+}
+function importBackup(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='application/json,.json';
+  inp.onchange=async()=>{try{const d=JSON.parse(await inp.files[0].text());if(!d||d.app!=='waiterlife'||!d.recs)throw 0;let n=0;
+    for(const [k,r] of Object.entries(d.recs)){if(typeof k==='string'&&/^[cwk]:/.test(k)&&r&&typeof r.t==='number'&&r.v&&typeof r.v==='object'&&apply(k,r.v,r.t,r.c)){send({k,v:r.v,t:r.t,c:r.c});n++}}
+    saveNow();refreshUI();toast(n?`Recuperados ${n} registros`:'No había nada nuevo en la copia')}catch(e){toast('Ese archivo no es una copia de WaiterLife')}};
+  inp.click();
 }
 function shareLink(){
   const sec=lsGet('wl-key');if(!sec)return;const url=location.origin+location.pathname+'#k='+sec;
