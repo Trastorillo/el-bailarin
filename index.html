@@ -103,6 +103,76 @@ canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image
 .over{text-align:center}
 .over .big{font-size:38px;color:#ef3b6b;text-shadow:3px 3px 0 var(--ink);margin:6px 0}
 .foot{text-align:center;font-size:11px;opacity:.6;margin-top:10px}
+
+/* ===== carcasas realistas: surfera (Bailarín) y rockera (María) ===== */
+.egg{isolation:isolate}
+.screenwrap::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:linear-gradient(135deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 28%,transparent 42%,transparent 100%);
+  box-shadow:inset 0 0 14px rgba(0,0,0,.45)}
+/* --- surf: tabla de resina turquesa con alma de madera --- */
+.surf body{background:linear-gradient(180deg,#ffd9a0 0%,#ff9e7a 30%,#35b6c9 62%,#0f6f93 100%) fixed}
+.surf .egg{
+  border-radius:50% 50% 42% 42% / 20% 20% 13% 13%;
+  border:3px solid #0c5a73;
+  background:
+    linear-gradient(90deg,transparent calc(50% - 3px),rgba(138,90,43,.38) calc(50% - 3px),rgba(227,184,119,.45) 50%,rgba(138,90,43,.38) calc(50% + 3px),transparent calc(50% + 3px)),
+    radial-gradient(120% 60% at 30% 0%,rgba(255,255,255,.55),transparent 55%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.07) 0 14px,transparent 14px 34px),
+    linear-gradient(170deg,#8ff0e2 0%,#3cc6cf 40%,#1b97b5 75%,#0f6f93 100%);
+  box-shadow:inset 0 3px 2px rgba(255,255,255,.7), inset 0 -14px 18px rgba(6,60,85,.55), inset 8px 0 14px rgba(255,255,255,.18), inset -8px 0 14px rgba(6,60,85,.3),
+    0 10px 0 #0a4c63, 0 22px 34px rgba(8,40,60,.5);
+}
+.surf .egg::before{content:"🌺";position:absolute;left:9%;bottom:3.2%;font-size:22px;transform:rotate(-18deg);filter:drop-shadow(0 2px 1px rgba(0,0,0,.35));pointer-events:none}
+.surf .egg::after{content:"🤙";position:absolute;right:9%;bottom:3.2%;font-size:20px;transform:rotate(14deg);filter:drop-shadow(0 2px 1px rgba(0,0,0,.35));pointer-events:none}
+.surf h1{color:#fff7d6;text-shadow:0 2px 0 #0c5a73,0 4px 6px rgba(0,0,0,.35);font-style:italic;letter-spacing:3px}
+.surf .sub,.surf .clock,.surf .foot,.surf #stars{color:#06384a;text-shadow:0 1px 0 rgba(255,255,255,.45)}
+.surf .foot{opacity:.85}
+.surf .bars{background:rgba(255,250,230,.82);border:2px solid #0c5a73;border-radius:10px;padding:5px 8px;box-shadow:inset 0 2px 3px rgba(0,0,0,.2)}
+.surf .screenwrap{border:6px solid #5b3a1c;border-radius:14px;
+  box-shadow:0 0 0 2px #e3b877, 0 0 0 4px #5b3a1c, 0 6px 10px rgba(0,0,0,.4)}
+.surf .menu button,.surf #swap,.surf #helpBtn,.surf #bellBtn{
+  color:#3d250f;border:2px solid #4a2d12;
+  background:repeating-linear-gradient(92deg,rgba(90,50,15,.10) 0 3px,transparent 3px 9px),linear-gradient(180deg,#f7dfae 0%,#e3b877 45%,#c08a48 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 4px rgba(90,50,15,.35), 0 5px 0 #6b4320, 0 8px 8px rgba(0,0,0,.35);
+  text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.surf .menu button{border-radius:16px}
+.surf .menu button:active,.surf #swap:active,.surf #helpBtn:active,.surf #bellBtn:active{transform:translateY(4px);box-shadow:inset 0 2px 5px rgba(90,50,15,.5), 0 1px 0 #6b4320}
+/* --- rock: cuero negro, tachuelas y cromo de ampli --- */
+.rock body{background:radial-gradient(120% 80% at 50% 0%,#5a0f1c 0%,#1d0a10 45%,#08080a 100%) fixed}
+.rock .egg{
+  border-radius:30px;border:3px solid #050506;padding:34px 22px 34px;
+  background:
+    radial-gradient(90% 40% at 50% 0%,rgba(255,255,255,.13),transparent 60%),
+    repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 2px,transparent 2px 5px),
+    repeating-linear-gradient(-45deg,rgba(0,0,0,.35) 0 2px,transparent 2px 6px),
+    linear-gradient(180deg,#2b2b31 0%,#17171b 60%,#0c0c0f 100%);
+  box-shadow:inset 0 2px 1px rgba(255,255,255,.25), inset 0 -12px 18px rgba(0,0,0,.7), 0 10px 0 #000, 0 22px 36px rgba(0,0,0,.7);
+}
+.rock .egg::before{content:"";position:absolute;inset:9px;border-radius:22px;pointer-events:none;
+  border:7px dotted #d9d9e2;filter:drop-shadow(0 2px 1px #000) drop-shadow(0 -1px 0 rgba(255,255,255,.6))}
+.rock .egg::after{content:"⚡";position:absolute;right:26px;top:24px;font-size:20px;filter:drop-shadow(0 0 5px #ff2a48);pointer-events:none}
+.rock h1{font-size:28px;letter-spacing:5px;font-style:italic;
+  background:linear-gradient(180deg,#ffffff 0%,#c9c9d4 45%,#70707e 52%,#e8e8ef 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;filter:drop-shadow(0 2px 0 #b3122b) drop-shadow(0 0 7px rgba(255,42,72,.8))}
+.rock .sub,.rock .clock,.rock .foot,.rock #stars{color:#e9e9ee}
+.rock .clock{color:#ff5068;text-shadow:0 0 6px rgba(255,42,72,.7)}
+.rock .bars{background:#0b0b0d;border:2px solid #4c4c56;border-radius:8px;padding:6px 8px;box-shadow:inset 0 2px 5px #000, 0 1px 0 rgba(255,255,255,.15)}
+.rock .bar .tr{background:#22222a;border-color:#8d8d99}
+.rock .bar .fi{background:linear-gradient(180deg,#7dff8f,#22b53c);box-shadow:0 0 5px #3fe35a}
+.rock .bar .fi.mid{background:linear-gradient(180deg,#ffe27a,#e0a100);box-shadow:0 0 5px #ffc933}
+.rock .bar .fi.low{background:linear-gradient(180deg,#ff7a8a,#d3142f);box-shadow:0 0 6px #ff2a48}
+.rock .screenwrap{border:6px solid #0a0a0c;border-radius:8px;
+  box-shadow:0 0 0 2px #b9b9c6, 0 0 0 4px #3a3a44, 0 0 16px rgba(255,42,72,.45), 0 6px 10px rgba(0,0,0,.6)}
+.rock .menu button,.rock #swap,.rock #helpBtn,.rock #bellBtn{
+  color:#111;border:2px solid #050506;
+  background:linear-gradient(180deg,#fbfbfd 0%,#c5c5d0 42%,#7c7c8a 50%,#a9a9b6 58%,#e4e4ec 100%);
+  box-shadow:inset 0 1px 0 #fff, inset 0 -2px 3px rgba(0,0,0,.35), 0 5px 0 #2a2a31, 0 8px 10px rgba(0,0,0,.7);
+  text-shadow:0 1px 0 rgba(255,255,255,.7);font-weight:700}
+.rock .menu button{border-radius:8px}
+.rock .menu button:active,.rock #swap:active,.rock #helpBtn:active,.rock #bellBtn:active{transform:translateY(4px);box-shadow:inset 0 2px 6px rgba(0,0,0,.6), 0 1px 0 #2a2a31}
+.rock #swap,.rock #helpBtn{padding:5px 9px;font-size:13px}
+.rock .swaprow{gap:6px;flex-wrap:nowrap}
+.rock .rescue{background:#b3122b;color:#fff}
 </style>
 
 </head>
@@ -143,6 +213,7 @@ let PET = PETS.includes(HASH)?HASH:null;
 const SELECTING = !PET;
 if(!PET){ try{ PET=localStorage.getItem('el-bailarin-last-pet'); }catch(e){} if(!PETS.includes(PET)) PET='bailarin'; }
 const IS_M = PET==='maria';
+document.documentElement.classList.add(IS_M?'rock':'surf');
 const KEY = IS_M ? 'el-bailarin-pet-maria-v1' : 'el-bailarin-maria-v1';
 const YOU = IS_M ? 'Bailarín' : 'María';
 const RATES = {food:12.5, energy:8.3, clean:7, happy:10, fit:4.2, anemic:4.2}; // puntos por hora
@@ -434,6 +505,20 @@ function showCloset(){
 function addStars(n){ ensureWardrobe(); S.stars+=n; const el=$('stars'); if(el) el.textContent='⭐ '+S.stars; }
 
 // ---- escenarios ----
+function isWorking(){ if(!IS_M) return false; const d=(window.__fakeDate&&new Date(window.__fakeDate))||new Date(), w=d.getDay(), h=d.getHours(); return w>=1 && w<=5 && h>=12 && h<22; }
+function sceneWork(now){
+  rect(0,0,W,96,'#5a3524'); for(let x=0;x<W;x+=8) rect(x,0,1,70,'#4c2b1c');
+  rect(6,10,84,3,'#2c1a10'); rect(6,26,84,3,'#2c1a10');
+  const cols=['#3fa34d','#e2463f','#e8c35a','#58c8ff','#f2e6c9','#b56ad6'];
+  for(let i=0;i<10;i++){ const c=cols[i%6]; rect(9+i*8,3,3,7,c); rect(10+i*8,1,1,2,c); rect(9+i*8,19,3,7,cols[(i+3)%6]); rect(10+i*8,17,1,2,cols[(i+3)%6]); }
+  rect(60,34,26,12,'#1b1b22'); txt('BAR',73,43,(Math.floor(now/600)%2)?'#ff5068':'#ffb3bf',8);
+  rect(0,70,W,26,'#3a2416'); for(let x=0;x<W;x+=12) rect(x,70,1,26,'#2c1a10');
+}
+function barCounter(now){
+  rect(0,66,W,4,'#c98f4c'); rect(0,66,W,1,'#f0c98a'); rect(0,70,W,26,'#7a4b2a'); for(let x=4;x<W;x+=14) rect(x,73,9,20,'#693d20');
+  rect(10,52,3,14,'#c9c9d4'); rect(8,50,7,3,'#e8e8ef'); rect(13,55,5,2,'#c9c9d4'); rect(16,57,2,3,'#111');
+  rect(80,59,5,7,'#e8c35a'); rect(80,58,5,2,'#fff'); rect(85,61,2,3,'#e8c35a');
+}
 function isNight(){ const h=new Date().getHours(); return h<8 || h>=21; }
 function sceneRoom(night){
   rect(0,0,W,70,night?'#3a3157':'#ffe3c2');
@@ -534,8 +619,9 @@ function render(now){
     if(Math.floor(now/700)%3===0 && floating.length<4) floating.push({x:52,y:50,t0:now,kind:'z'});
     drawFloating(now); return;
   }
-  sceneRoom(isNight());
-  if(S.floorGift) drawGift(S.floorGift,now);
+  const work=isWorking();
+  if(work) sceneWork(now); else sceneRoom(isNight());
+  if(S.floorGift && !work) drawGift(S.floorGift,now);
 
   let p=curPose, x=guyX, opts={...look};
   if(anim && anim.type==='shower'){
@@ -572,6 +658,14 @@ function render(now){
     if(flourish && POSES[flourish.move].spin){ sx=Math.cos(now/90); p.la=90; p.ra=90; }
     if(walking && !flourish){ const w=Math.sin(now/120); p.ll=6+w*10; p.rl=6-w*10; p.la=12-w*8; p.ra=12+w*8; }
     const bob = !flourish ? Math.round(Math.sin(now/400)) : 0;
+    if(work){
+      if(!flourish){ p.ra=70; p.re=-110; }
+      const o={...opts, x:guyX, y:GROUND-22+bob, sx, swing: flourish?Math.sin(now/120)*3:0};
+      drawGuy(p,o);
+      if(!flourish && o.hand){ const hx=Math.round(o.hand[0]), hy=Math.round(o.hand[1]); rect(hx-5,hy-1,11,1,'#d9d9e2'); rect(hx-4,hy-6,3,5,'#e8c35a'); rect(hx-4,hy-7,3,2,'#fff'); rect(hx+1,hy-6,3,5,'#e8c35a'); rect(hx+1,hy-7,3,2,'#fff'); }
+      barCounter(now);
+      label('Currando · sale a las 22');
+    } else
     drawGuy(p,{...opts, x:guyX, y:GROUND-16+bob, sx, swing: flourish?Math.sin(now/120)*3:0});
   }
   drawFloating(now);
@@ -764,6 +858,7 @@ const ACTIONS = {
     modal(IS_M?`<h2>Cómo cuidar a María</h2>
     <p>Sus barras bajan con el tiempo, también con la app cerrada. Al abrirla se calcula todo lo que ha pasado.</p>
     <p>💪 La <b>forma física</b> solo sube con la bici y cantando con el micro.<br>🩸 El <b>estado anémico</b> solo se recarga acostándote con ella (cada 3 h).</p>
+    <p>🍻 Entre semana, de 12:00 a 22:00, María está <b>currando en el bar</b>. Puedes seguir cuidándola, pero no se va de excursión hasta que sale.</p>
     <p>🩹 Si se cae con la bici, a veces se rompe algo y lleva escayola unas horas.</p>
     <p>🍺 Si se queda sin comida, limpieza o forma física, acaba <b>de after en la calle con una birra caliente</b>. Tienes 24 h para rescatarla: duchándola, dándole de comer y llevándola en bici.</p>
     <p>📱 Si la tienes sana pero sin cariño (felicidad y estado anémico muy bajos durante 12 h), <b>se abre un Tinder</b>. GAME OVER.</p>
@@ -932,6 +1027,7 @@ function proposeTrip(){
 }
 function startTrip(t){
   if(anim||game||S.mode!=='ok'||S.sleeping) return;
+  if(isWorking()){ say('Ahora no puedo, estoy currando. Salgo a las 22:00 y nos vamos donde quieras.'); return; }
   if(S.stats.energy<15){ say('Me encantaría, pero estoy sin energía. Déjame dormir un poco antes.'); return; }
   flourish=null; jingle(true);
   startAnim({type:'trip', trip:t, dur:13000, onEnd(){
@@ -1232,7 +1328,8 @@ function chatter(now){
   const low = BARS.filter(([k])=>S.stats[k]<30).map(b=>b[0]);
   if(low.length && Math.random()<.6){ say(pick(NEED[pick(low)])); return; }
   if(IS_M && S.injuredUntil>Date.now() && Math.random()<.3){ say(pick(['Con la escayola también se puede montar en bici. Creo.','Esto no es nada. La próxima vez me rompo algo más gordo.','¿Me firmas la escayola, Bailarín?'])); return; }
-  if(Date.now()-S.lastTrip>20*60000 && S.stats.energy>=15 && Math.random()<(Object.keys(S.trips).length?0.3:0.5)){ proposeTrip(); return; }
+  if(isWorking()){ if(Math.random()<.6){ say(pick(['Estoy currando. De 12 a 22, como una campeona.','¿Otra ronda para la mesa cuatro? Marchando.','Yo sirvo las birras y luego nadie me pone una a mí.','Cuando salga a las 22, ponme una birra. Me la he ganado.','En este bar hasta poniendo cañas tengo carisma.','Mesa seis, ¡que no puede ser bonito y seguro! Dos bravas.','Bailarín, tráeme un bocata, que no he parado ni a comer.']),7000); return; } }
+  else if(Date.now()-S.lastTrip>20*60000 && S.stats.energy>=15 && Math.random()<(Object.keys(S.trips).length?0.3:0.5)){ proposeTrip(); return; }
   say(pick(LINES), 7000);
 }
 
@@ -1416,7 +1513,7 @@ if(!SELECTING){ setTimeout(()=>{ checkNeglect(); scheduleAlerts(); },2000); }
 
 // ganchos de prueba
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
-window.__B = {get S(){return S;}, set S(v){S=v;}, step, startTrip, proposeTrip, TRIPS, drawGuy, sceneBeach, ctx, save, POSES, setPose, ACTIONS, collectGift, spawnGift, get NT(){return NT;}, checkNeglect, scheduleAlerts, tellOwner};
+window.__B = {get S(){return S;}, set S(v){S=v;}, step, startTrip, proposeTrip, TRIPS, drawGuy, sceneBeach, ctx, save, POSES, setPose, ACTIONS, collectGift, spawnGift, isWorking, get NT(){return NT;}, checkNeglect, scheduleAlerts, tellOwner};
 })();
 </script>
 
