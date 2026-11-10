@@ -122,12 +122,13 @@ input{flex:1}
     <canvas id="scene"></canvas>
     <div id="pop"></div>
     <div id="toasts"></div>
-    <div id="chat"><div class="ch">💬 Chat de camareros<button class="btn" id="chatX">✕</button></div><div id="msgs"></div>
+    <div id="chat"><div class="ch">💬 Chat <span id="chatWho" style="font-size:16px;color:var(--dim);margin-left:8px"></span><button class="btn" id="chatX">✕</button></div><div id="msgs"></div>
       <form id="chatF"><input id="chatIn" maxlength="200" placeholder="Escribe a los demás…" autocomplete="off"><button class="btn ok">Enviar</button></form></div>
   </div>
 </div>
 <div id="rot"><div class="ph">📱</div><div>Gira el móvil para ver el bar en grande</div><button class="btn" onclick="document.body.classList.add('portrait-ok');resize()">Seguir así</button></div>
 
+<script src="peerjs.min.js" async onload="window.startP2P&&startP2P()"></script>
 <script>
 'use strict';
 // ====================== CONFIG ======================
@@ -225,7 +226,7 @@ async function initialSync(){
     if(!res.ok)throw new Error('http '+res.status);
     const txt=await res.text();
     for(const line of txt.split('\n')){if(!line.trim())continue;try{handleNtfy(JSON.parse(line),false)}catch(e){}}
-    synced=true; refreshUI(); openStream(); flush(); heartbeat(true);
+    synced=true; refreshUI(); openStream(); flush(); startP2P();
     setTimeout(republish, 3000+Math.random()*9000);
     setInterval(republish, 45*60e3);
   }catch(e){
@@ -282,15 +283,55 @@ function drunkLevel(id){
 const me = () => DB.me ? rec('w:'+DB.me) : null;
 const pres = id => rec('p:'+id);
 const onDuty = id => {const p=pres(id);return !!(p&&p.d&&Date.now()-p.s<14*3600e3)};
-const atHomeOnline = id => {const p=pres(id);return !!(p&&!p.d&&Date.now()-p.s<12*60e3)};
-const chatMsgs = () => Object.keys(DB.recs).filter(k=>k.startsWith('m:')&&rec(k)).map(k=>rec(k)).sort((a,b)=>a.t-b.t).slice(-80);
+const atHomeOnline = id => !onDuty(id) && (id===DB.me || peerOnline(id));
 const VSPOTS=[[0.9,9.6],[3.4,9.6],[6.9,6.15]];
-let lastBeat=0;
-function heartbeat(force){
-  if(!DB.me||!me())return; if(!force&&(document.visibilityState!=='visible'||Date.now()-lastBeat<4*60e3))return;
-  lastBeat=Date.now(); const p=pres(DB.me)||{}; put('p:'+DB.me,{d:p.d?1:0,s:Date.now()});
+// ---------- chat P2P (WebRTC con PeerJS): solo entre camareros con la app abierta a la vez ----------
+const PEER_PREFIX='waiterlife-h3k9q2v7xm-';
+let peer=null, peerFor=null, p2pState='off'; const CONNS={};
+let CHAT=(()=>{try{const c=JSON.parse(lsGet('wl-chat'));if(Array.isArray(c))return c}catch(e){}return []})();
+const peerOnline = id => !!(CONNS[id]&&CONNS[id].open);
+const onlinePeers = () => waiters().filter(w=>w.id!==DB.me&&peerOnline(w.id));
+function startP2P(){
+  if(!window.Peer||!DB.me||!me())return;
+  if(peer&&peerFor===DB.me&&!peer.destroyed)return;
+  stopP2P(); peerFor=DB.me;
+  const mk=id=>{
+    const pr=peer=new Peer(id,Object.assign({debug:0},window.WL_PEER_OPTS||{})); p2pState='conn';
+    pr.on('open',()=>{if(pr!==peer)return;p2pState='ok';connectAll();renderChat()});
+    pr.on('connection',c=>setupConn(c));
+    pr.on('disconnected',()=>{if(pr===peer&&!pr.destroyed)setTimeout(()=>{try{pr.reconnect()}catch(_){}},3000)});
+    pr.on('error',e=>{if(pr!==peer)return;
+      if(e.type==='unavailable-id'){pr.destroy();mk(PEER_PREFIX+DB.me+'-'+rid())}   // mismo camarero en otro móvil
+      else if(e.type!=='peer-unavailable'){p2pState='err';console.warn('p2p',e.type,e.message);renderChat()}});
+  };
+  mk(PEER_PREFIX+DB.me);
 }
-function setDuty(d){if(!me())return chooseWaiter();lastBeat=Date.now();put('p:'+DB.me,{d:d?1:0,s:Date.now()},d?`${myName()} entra de servicio`:`${myName()} se va a casa`);updateDutyBtn()}
+function stopP2P(){for(const k in CONNS){try{CONNS[k].close()}catch(_){}delete CONNS[k]}if(peer){try{peer.destroy()}catch(_){}}peer=null;peerFor=null;p2pState='off'}
+function connectAll(){
+  if(!peer||!peer.open||peer.destroyed)return;
+  for(const w of waiters()){if(w.id===DB.me||peerOnline(w.id))continue;
+    try{setupConn(peer.connect(PEER_PREFIX+w.id,{reliable:true}))}catch(_){}}
+}
+function setupConn(c){
+  if(!c)return;
+  c.on('open',()=>{try{c.send({t:'hi',w:DB.me})}catch(_){}});
+  c.on('data',d=>{
+    if(!d||typeof d!=='object')return;
+    if(d.t==='hi'&&typeof d.w==='string'&&rec('w:'+d.w)&&d.w!==DB.me){const was=peerOnline(d.w);c._w=d.w;CONNS[d.w]=c;if(!was){const w=rec('w:'+d.w);toast('💬 '+w.n+' se ha conectado');}refreshUI();return}
+    if(d.t==='msg'&&c._w&&typeof d.tx==='string'){addChat({by:c._w,tx:d.tx.slice(0,200),t:Date.now()})}
+  });
+  const gone=()=>{if(c._w&&CONNS[c._w]===c){delete CONNS[c._w];refreshUI()}};
+  c.on('close',gone); c.on('error',gone);
+}
+function addChat(m){
+  CHAT.push(m); if(CHAT.length>80)CHAT=CHAT.slice(-80); lsSet('wl-chat',JSON.stringify(CHAT));
+  say('w:'+m.by,m.tx,7000);
+  if(m.by!==DB.me&&!chatOpen()){const w=rec('w:'+m.by);toast('💬 '+(w?w.n:'?')+': '+m.tx)}
+  renderChat();
+}
+setInterval(()=>{if(document.visibilityState==='visible'){if(!peer||peer.destroyed)startP2P();else if(peer.disconnected){try{peer.reconnect()}catch(_){}}else connectAll()}},20000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>{if(!peer||peer.destroyed)startP2P();else if(peer.disconnected){try{peer.reconnect()}catch(_){}}else connectAll()},800)});
+function setDuty(d){if(!me())return chooseWaiter();put('p:'+DB.me,{d:d?1:0,s:Date.now()},d?`${myName()} entra de servicio`:`${myName()} se va a casa`);updateDutyBtn()}
 function updateDutyBtn(){const b=$('#bDuty');const d=DB.me&&onDuty(DB.me);b.textContent=d?'🟢 De servicio':'🏠 En casa';b.classList.toggle('duty',!!d)}
 const myName = () => (me()||{}).n || 'Alguien';
 
@@ -690,7 +731,6 @@ function headIcon(a,size){
 function bodyIcon(a){const c=document.createElement('canvas');c.width=20;c.height=30;drawChar(c.getContext('2d'),a,10,29,{});return c}
 function toast(text){const t=document.createElement('div');t.className='toast';t.textContent=text;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),4200);while($('#toasts').children.length>4)$('#toasts').firstChild.remove()}
 function onRemote(m){
-  if(m.k.startsWith('m:')&&m.v){const w=rec('w:'+m.v.by);say('w:'+m.v.by,m.v.tx,7000);if(!chatOpen())toast('💬 '+(w?w.n:'?')+': '+m.v.tx);renderChat();return}
   if(m.m)toast(m.m);
   if(m.k.startsWith('d:')&&m.v){const cid=m.k.split(':')[1];const D=DRINKS[m.v.ty];if(D)FX.push({id:cid,text:'+'+D.e,t0:Date.now()});
     if(m.v.by)say('w:'+m.v.by,'¡Marchando!',2500)}
@@ -751,12 +791,16 @@ $('#bBar').onclick=e=>dropdown(e.currentTarget,'Ahora en el bar',d=>{
 });
 const chatOpen=()=>$('#chat').classList.contains('on');
 function renderChat(){
-  const list=chatMsgs(); const read=DB.chatRead||0;
+  const list=CHAT; const read=DB.chatRead||0;
   const un=list.filter(m=>m.t>read&&m.by!==DB.me).length;
   const b=$('#unread'); b.textContent=un; b.classList.toggle('on',un>0&&!chatOpen());
   if(!chatOpen())return;
+  const on=onlinePeers();
+  $('#chatWho').textContent=p2pState==='err'?'sin conexión al chat':on.length?'conectados: '+on.map(w=>w.n).join(', '):'nadie más conectado';
+  const inp=$('#chatIn'); inp.placeholder=on.length?'Escribe a '+on.map(w=>w.n).join(' y ')+'…':'Nadie más tiene la app abierta ahora';
+  $('#chatF button').disabled=!on.length;
   const box=$('#msgs'); box.innerHTML='';
-  if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent='Aún no hay mensajes. Los mensajes solo los veis los camareros.';box.appendChild(e)}
+  if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent='Chat directo entre móviles: los mensajes solo llegan a quien tiene la app abierta en ese momento y no se guardan en ningún servidor.';box.appendChild(e)}
   for(const m of list){const w=rec('w:'+m.by);const row=document.createElement('div');row.className='msg'+(m.by===DB.me?' mine':'');
     row.appendChild(headIcon(w?w.a:{}));const col=document.createElement('div');const h=document.createElement('div');h.className='w';h.textContent=(w?w.n:'¿?')+' · '+hm(m.t);
     const tx=document.createElement('div');tx.className='tx';tx.textContent=m.tx;col.appendChild(h);col.appendChild(tx);row.appendChild(col);box.appendChild(row)}
@@ -766,7 +810,9 @@ function renderChat(){
 $('#bChat').onclick=()=>{closeDrop();closePop();$('#chat').classList.toggle('on');renderChat();if(chatOpen()&&matchMedia('(pointer:fine)').matches)$('#chatIn').focus()};
 $('#chatX').onclick=()=>{$('#chat').classList.remove('on');renderChat()};
 $('#chatF').onsubmit=e=>{e.preventDefault();const i=$('#chatIn');const tx=i.value.trim();if(!tx)return;if(!me()){chooseWaiter();return}
-  put('m:'+rid(),{by:DB.me,tx,t:Date.now()});say('w:'+DB.me,tx,7000);i.value='';renderChat()};
+  const on=onlinePeers(); if(!on.length){toast('Nadie más tiene la app abierta ahora');return}
+  for(const w of on){try{CONNS[w.id].send({t:'msg',tx})}catch(_){}}
+  addChat({by:DB.me,tx,t:Date.now()});i.value=''};
 $('#bMore').onclick=e=>dropdown(e.currentTarget,'Más',d=>{
   item(d,null,'🧑‍🍳 Cambiar de camarero',null,()=>{closeDrop();chooseWaiter()});
   item(d,null,'🧹 Cerrar el bar',`Todos se van (${inBar().length} dentro)`,()=>{closeDrop();confirmBox('¿Cerrar el bar?','Todos los clientes que quedan saldrán del bar.','🧹 Cerrar',()=>{const l=inBar();l.forEach((c,n)=>leave(c.id,true));put('x:close',{t:Date.now()},myName()+' ha cerrado el bar');toast('Bar cerrado')})});
@@ -910,7 +956,7 @@ function editWaiter(id){
       const wid=id||rid();
       if(!id&&waiters().length>=MAX_WAITERS){toast('Ya hay '+MAX_WAITERS+' camareros');return false}
       put('w:'+wid,{n,a,ct:w?w.ct:Date.now()},w?null:`¡${n} se une al equipo!`);
-      DB.me=wid; save(); if(!w)heartbeat(true); refreshUI();
+      DB.me=wid; save(); startP2P(); refreshUI();
     },
     onDelete:w?()=>{put('w:'+id,null,`${w.n} deja el equipo`);if(DB.me===id){DB.me=null;save();setTimeout(chooseWaiter,200)}}:null});
 }
@@ -922,7 +968,7 @@ function chooseWaiter(){
   const fill=()=>{
     const box=m.querySelector('.who');box.innerHTML='';
     for(const w of waiters()){const b=document.createElement('button');b.className='btn'+(w.id===DB.me?' gold':'');b.appendChild(bodyIcon(w.a));const s=document.createElement('span');s.textContent=w.n;b.appendChild(s);
-      b.onclick=()=>{DB.me=w.id;save();m.remove();whoModal=null;toast('Hola, '+w.n);heartbeat(true);refreshUI()};box.appendChild(b)}
+      b.onclick=()=>{DB.me=w.id;save();m.remove();whoModal=null;toast('Hola, '+w.n);startP2P();refreshUI()};box.appendChild(b)}
     if(waiters().length<MAX_WAITERS){const b=document.createElement('button');b.className='btn ok';b.innerHTML='<span style="font-size:40px;line-height:84px">➕</span><span>Soy nuevo</span>';b.onclick=()=>{m.remove();whoModal=null;editWaiter(null)};box.appendChild(b)}
     m.querySelector('[data-st]').textContent=synced?`Hay ${waiters().length} de ${MAX_WAITERS} camareros.`:'Cargando el bar…';
   };
@@ -935,8 +981,8 @@ function help(){
   <p>🙂 La carita encima de cada cliente se va emborrachando según lo que lleva (cada copa deja de contar a las 2,5 h).</p>
   <p>👋 <b>Se va</b> cuando sale del bar. ➕ <b>Cliente</b> crea uno nuevo con su aspecto, dos frases típicas y tres cosas que suele pedir.</p>
   <p>📡 Los 3 camareros ven los cambios en tiempo real, también desde casa. Si no hay cobertura, se guarda y se envía al volver.</p>
-  <p>🟢 <b>De servicio</b>: sales detrás de la barra. 🏠 <b>En casa</b>: mientras tengas la app abierta, tu avatar aparece en el salón. 📋 <b>Bar</b> resume quién hay, cuánto ha bebido y qué.</p>
-  <p>💬 <b>Chat</b>: mensajes entre camareros; salen también en un bocadillo sobre vuestro avatar.</p>
+  <p>🟢 <b>De servicio</b>: sales detrás de la barra. 🏠 <b>En casa</b>: mientras tengas la app abierta, los demás ven tu avatar en el salón. 📋 <b>Bar</b> resume quién hay, cuánto ha bebido y qué.</p>
+  <p>💬 <b>Chat</b>: directo entre móviles (no gasta el límite gratuito). Solo llega a quien tiene la app abierta a la vez y sale en un bocadillo sobre su avatar.</p>
   <p class="hint">Consejo: en iPhone, Compartir → "Añadir a pantalla de inicio" para abrirla como app a pantalla completa.</p>
   <div class="acts"><button class="btn ok" data-x>¡Entendido!</button></div>`);
   m.querySelector('[data-x]').onclick=()=>m.remove();
@@ -948,8 +994,7 @@ function refreshUI(){uiDirty=true;updateDutyBtn();renderChat();if(openDrop)rende
 resize();
 requestAnimationFrame(frame);
 setInterval(tickClock,15000);
-setInterval(()=>{heartbeat();updateDutyBtn()},60000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>heartbeat(),1500)});
+setInterval(updateDutyBtn,60000);
 setInterval(()=>{if(popId)renderPop()},30000);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>buildStatic());
 initialSync();
