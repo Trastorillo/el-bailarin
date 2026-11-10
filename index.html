@@ -48,7 +48,8 @@ h1{margin:0 0 6px;text-align:center;font-size:24px;letter-spacing:2px;color:var(
 .ward{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:5px 8px;margin:4px 0;font-size:15px}
 .ward button{font-size:14px;padding:5px 8px;box-shadow:0 2px 0 var(--btn-dark);white-space:nowrap}
 .ward button:disabled{opacity:.5}
-#swap,#helpBtn{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 14px;box-shadow:0 3px 0 var(--btn-dark);cursor:pointer}
+#swap,#helpBtn,#bellBtn{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 14px;box-shadow:0 3px 0 var(--btn-dark);cursor:pointer}
+#bellBtn{padding:5px 10px}
 #swap:active{transform:translateY(2px);box-shadow:0 1px 0 var(--btn-dark)}
 .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;margin:0 6px 10px}
 .bar{display:flex;align-items:center;gap:4px;font-size:12px}
@@ -109,7 +110,7 @@ canvas{display:block;width:100%;aspect-ratio:1/1;image-rendering:pixelated;image
 <div class="egg">
   <h1>EL BAILARÍN</h1>
   <div class="sub" id="sub">la mascota de María</div>
-  <div class="swaprow"><span id="stars">⭐ 5</span><button id="swap" type="button"></button><button id="helpBtn" type="button">❔ Ayuda</button></div>
+  <div class="swaprow"><span id="stars">⭐ 5</span><button id="swap" type="button"></button><button id="bellBtn" type="button">🔔</button><button id="helpBtn" type="button">❔ Ayuda</button></div>
   <div class="clock" id="clock"></div>
   <div class="bars" id="bars"></div>
   <div class="screenwrap" id="screen">
@@ -718,7 +719,7 @@ function endAnim(){ const a=anim; anim=null; setPose('stand',300); if(a && a.onE
 function checkRescue(){
   if(S.mode==='wine' && S.rescue.eat && S.rescue.shower && S.rescue.surf){
     S.mode='ok'; const s=S.stats; s.food=Math.max(s.food,50); s.clean=Math.max(s.clean,60); s.fit=Math.max(s.fit,45); s.happy=Math.max(s.happy,40);
-    S.wineHours=0; guyX=48; save(); updateBars();
+    S.wineHours=0; guyX=48; save(); updateBars(); tellOwner('rescue');
     say(IS_M?'Ay, Bailarín... qué vergüenza. Gracias por rescatarme. Pero la próxima birra la pago yo. 😳':'Ay, María... qué vergüenza. Gracias por rescatarme. No se lo cuentes a nadie del estudio. 😳',7000); jingle(true);
   }
 }
@@ -740,12 +741,12 @@ const ACTIONS = {
   dance(){ IS_M?startMic():startDance(); },
   sleep(){
     if(S.sleeping){ S.sleeping=false; say(IS_M?'¿Qué hora es? Estaba soñando con una bajada sin frenos...':'¿Quééé? Estaba soñando que me fichaba Pina Bausch...'); }
-    else { if(S.stats.energy>90){ say(IS_M?'¿Dormir? Si todavía no me he roto nada hoy.':'No tengo sueño, tengo ARTE dentro.'); return; } S.sleeping=true; flourish=null; setPose('stand',1); beep(300,.2,'sine'); }
+    else { if(S.stats.energy>90){ say(IS_M?'¿Dormir? Si todavía no me he roto nada hoy.':'No tengo sueño, tengo ARTE dentro.'); return; } S.sleeping=true; flourish=null; setPose('stand',1); beep(300,.2,'sine'); tellOwner('sleep'); }
     save(); updateBars();
   },
   shower(){
     beep(500,.06);
-    startAnim({type:'shower', dur:3200, onEnd(){ S.stats.clean=100; S.stats.happy=clamp(S.stats.happy+3);
+    startAnim({type:'shower', dur:3200, onEnd(){ S.stats.clean=100; S.stats.happy=clamp(S.stats.happy+3); tellOwner('shower');
       if(S.mode==='wine'){ S.rescue.shower=true; say('El agua fría me devuelve la dignidad... poco a poco.'); checkRescue(); }
       else say(pick(IS_M?['Adiós al barro. Hola, siguiente aventura.','Limpia y lista para mancharme otra vez.','El agua fría despierta más que un café.']:['Limpito y con el pelo brillante. Lo sé.','La arena no se va nunca del todo. Es parte de mí.','Huelo a coco y a éxito.'])); }});
   },
@@ -753,7 +754,7 @@ const ACTIONS = {
     const left = 3*3600000 - (Date.now()-S.lastCuddle);
     if(left>0){ const m=Math.ceil(left/60000); say(`${IS_M?'Dame un respiro, que estoy molida...':'Dame un respiro, que soy artista...'} (vuelve en ${m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min'})`); return; }
     S.sleeping=false;
-    startAnim({type:'cuddle', dur:5200, onEnd(){ const s=S.stats; s.anemic=100; s.happy=clamp(s.happy+15); s.energy=clamp(s.energy+10); S.lastCuddle=Date.now(); addStars(1);
+    startAnim({type:'cuddle', dur:5200, onEnd(){ const s=S.stats; s.anemic=100; s.happy=clamp(s.happy+15); s.energy=clamp(s.energy+10); S.lastCuddle=Date.now(); addStars(1); tellOwner('bed');
       say(pick(IS_M?['Buenos días, Bailarín. Estado anémico al 100%. 🩸✨','Mejor que una bajada sin frenos. Y eso es mucho decir.','Ahora sí. Ponme una birra para celebrarlo.']:['Buenos días, María. Tengo el estado anémico al 100%. 🩸✨','Me siento como después de un estreno con ovación.','Esto ha sido mejor que una pieza de Pina Bausch. Y eso es mucho decir.'])); jingle(true); }});
     beep(440,.15,'sine');
   },
@@ -769,6 +770,7 @@ const ACTIONS = {
     <p>🚐 De vez en cuando te propondrá planes por Cantabria y fútbol en el bar. Si le dices que sí, os vais.</p>
     <p>⭐ Gana estrellas con los minijuegos, las excursiones, los regalos y los mimos, y desbloquea ropa y accesorios en el <b>Armario</b>.</p>
     <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
+    <p>🔔 Con el botón de la campana, el dueño de verdad recibe avisos en su móvil (app ntfy) de lo que haces y de si lo descuidas.</p>
     <div class="opts"><button data-x>¡Entendido!</button><button data-sw>Cambiar de personaje</button></div>`:`<h2>Cómo cuidar al Bailarín</h2>
     <p>Sus barras bajan con el tiempo, también con la app cerrada.</p>
     <p>💪 La <b>forma física</b> solo sube surfeando y bailando.<br>🩸 El <b>estado anémico</b> solo se recarga acostándote con él (cada 3 h).</p>
@@ -779,6 +781,7 @@ const ACTIONS = {
     <p>🚐 De vez en cuando te propondrá una excursión por Cantabria. Si le dices que sí, os vais en furgoneta.</p>
     <p>📲 Ábrelo siempre desde el mismo enlace en Safari. Si quieres, añádelo a la pantalla de inicio (Compartir → Añadir a pantalla de inicio).</p>
     <p>👉 En los minijuegos, toca la pantalla cuando la barrita rosa esté en la zona verde.</p>
+    <p>🔔 Con el botón de la campana, el dueño de verdad recibe avisos en su móvil (app ntfy) de lo que haces y de si lo descuidas.</p>
     
     <div class="opts"><button data-x>¡Entendido!</button><button data-sw>Cambiar de personaje</button></div>`);
     $('card').querySelector('[data-x]').onclick=closeModal;
@@ -796,6 +799,7 @@ function feed(f){
     else if(f==='batido'){ s.food=clamp(s.food+25); s.energy=clamp(s.energy+12); say(pick(['Verde como mi alma cuando improviso.','Energía para tres contracciones seguidas.'])); }
     else { s.food=clamp(s.food+15); s.happy=clamp(s.happy+12); s.fit=clamp(s.fit-3); say(pick(['¡Azúcar! Ahora puedo girar durante una hora.','No se lo digas a mi coreógrafa.'])); }
     if(S.mode==='wine'){ S.rescue.eat=true; checkRescue(); }
+    tellOwner('eat', f);
   }});
   beep(700,.05);
 }
@@ -812,7 +816,7 @@ function gameTap(){
   const hit = game.pos>=game.zs && game.pos<=game.zs+game.zw;
   if(hit){ game.hits++; addStars(1); beep(880,.07); } else beep(200,.12);
   game.state='show'; game.onRound(hit, game.round);
-  setTimeout(()=>{ if(!game) return; game.round++; if(game.round>=game.rounds){ const g=game; game=null; $('game').classList.remove('show'); g.onFinish(g.hits); updateBars(); }
+  setTimeout(()=>{ if(!game) return; game.round++; if(game.round>=game.rounds){ const g=game; game=null; $('game').classList.remove('show'); const hurt0=S.injuredUntil; g.onFinish(g.hits); updateBars(); tellOwner('game',{kind:g.kind, hits:g.hits, rounds:g.rounds, hurt:S.injuredUntil!==hurt0}); }
     else { game.state='aim'; game.speed*=1.12; newZone(); gameLabel(); } }, 1100);
 }
 function tickGame(dt){
@@ -932,7 +936,7 @@ function startTrip(t){
   flourish=null; jingle(true);
   startAnim({type:'trip', trip:t, dur:13000, onEnd(){
     const s=S.stats; for(const k in t.fx) s[k]=clamp(s[k]+t.fx[k]);
-    S.trips[t.id]=(S.trips[t.id]||0)+1; addStars(3); S.lastTrip=Date.now(); S.lastTripId=t.id; guyX=48;
+    S.trips[t.id]=(S.trips[t.id]||0)+1; addStars(3); tellOwner('trip', t.name); S.lastTrip=Date.now(); S.lastTripId=t.id; guyX=48;
     if(t.risk && Math.random()<0.3 && !(S.injuredUntil>Date.now())){ S.injuredUntil=Date.now()+6*3600000; say('Bueno... me he roto algo en la bajada. Pero ha merecido la pena. 🩹',7000); return; }
     say(pick(IS_M?['¡Qué día! Cantabria infinita. Gracias por venir conmigo, Bailarín.','Vuelvo a casa con barro, moratones y ganas de más.','Te he guardado una postal en tu colección. Mírala en Estado.']:['¡Qué día! Cantabria infinita. Gracias por venir conmigo, María.','Vuelvo a casa con arena, recuerdos y una coreografía nueva.','Te he guardado una postal en tu colección. Mírala en Estado.']),6000);
   }});
@@ -1113,7 +1117,7 @@ function showOver(){
     ? `<p>Lo tenías sanísimo, pero sin cariño... y <b>se ha abierto un Tinder</b>.</p><p>Su bio dice: <i>"Bailarín, 27. De Valladolid, vivo en Santoña. Surf, danza y llorar en la playa. Busco a alguien que me valore."</i></p>`
     : `<p>Pasó 24 horas <b>bebiendo vino en la calle</b> y nadie fue a rescatarlo. Ahora vive en el banco y da clases de contemporáneo a las palomas.</p>`;
   modal(`<div class="over"><div class="big">GAME OVER</div>${t}<p><small>Tu colección de regalos se conserva. (Toca fuera para ver la escena.)</small></p><div class="opts"><button data-new>${IS_M?'Empezar de nuevo con María':'Adoptar un Bailarín nuevo'}</button></div></div>`);
-  $('card').querySelector('[data-new]').onclick=()=>{ S=fresh(S); S.introSeen=true; guyX=48; save(); closeModal(); updateBars(); say(IS_M?'Hola, Bailarín. Soy María. Esta vez cuídame, ¿vale? Y ponme una birra. 🥺':'Hola, María. Soy el Bailarín. Esta vez cuídame, ¿vale? 🥺',6000); };
+  $('card').querySelector('[data-new]').onclick=()=>{ S=fresh(S); S.introSeen=true; guyX=48; save(); closeModal(); updateBars(); tellOwner('newgame'); say(IS_M?'Hola, Bailarín. Soy María. Esta vez cuídame, ¿vale? Y ponme una birra. 🥺':'Hola, María. Soy el Bailarín. Esta vez cuídame, ¿vale? 🥺',6000); };
 }
 
 $('menu').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||b.disabled) return; beep(600,.04); ACTIONS[b.dataset.a](); });
@@ -1233,7 +1237,7 @@ function chatter(now){
 }
 
 // ====================== BUCLE ======================
-let lastFrame=performance.now(), simAcc=0, saveAcc=0, uiAcc=0;
+let lastFrame=performance.now(), simAcc=0, saveAcc=0, uiAcc=0, nCheckAcc=0;
 function loop(now){
   const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
   simAcc+=dt; saveAcc+=dt; uiAcc+=dt;
@@ -1246,22 +1250,133 @@ function loop(now){
     if(wasSleeping && !S.sleeping) say(IS_M?'¡Buenos días! ¿Qué deporte de riesgo toca hoy?':'¡Buenos días! He soñado que bailaba en el mar.');
   }
   if(uiAcc>=0.5){ uiAcc=0; updateBars(); }
-  if(saveAcc>=5){ saveAcc=0; save(); }
+  if(saveAcc>=5){ saveAcc=0; save(); if(!SELECTING){ nCheckAcc=(nCheckAcc||0)+1; if(nCheckAcc>=6){ nCheckAcc=0; checkNeglect(); } } }
   tickGame(dt); chatter(now);
   render(now);
   requestAnimationFrame(loop);
 }
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); else { // al volver, ponerse al día
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ save(); if(!SELECTING) scheduleAlerts(true); } else { // al volver, ponerse al día
   let hours=Math.min((Date.now()-S.last)/3600000,24*30); const before=S.mode;
   while(hours>0 && S.mode!=='over'){ const d=Math.min(1/60,hours); step(d); hours-=d; } S.last=Date.now();
   if(before!==S.mode){ anim=null; game=null; $('game').classList.remove('show'); if(S.mode==='over') showOver(); }
-  updateBars(); }});
-window.addEventListener('pagehide',save);
+  updateBars(); if(!SELECTING) checkNeglect(); }});
+window.addEventListener('pagehide',()=>{ save(); if(!SELECTING) scheduleAlerts(true); });
+
+// ====================== AVISOS AL DUEÑO (ntfy.sh) ======================
+// Cada mascota tiene un dueño de verdad: el Bailarín es Iván y lo cuida María; María la cuida Iván.
+// El móvil que juega con una mascota avisa a su dueño por ntfy (app gratuita, sin cuenta).
+const LO = IS_M?'la':'lo', OA = IS_M?'a':'o';
+const OWNER = IS_M?'María':'Iván', CARER = IS_M?'Iván':'María', PETN = IS_M?'tu María':'tu Bailarín';
+const NKEY = 'el-bailarin-ntfy-'+PET;
+const NDEF = {on:true, topic: IS_M?'bailarin-maria-k4p8w1z6r':'bailarin-ivan-q7k3x9m2'};
+let NT; try{ NT = Object.assign({}, NDEF, JSON.parse(localStorage.getItem(NKEY)||'{}')); }catch(e){ NT = {...NDEF}; }
+NT.flags = NT.flags||{}; NT.sched = NT.sched||{};
+function saveNT(){ try{ localStorage.setItem(NKEY, JSON.stringify(NT)); }catch(e){} }
+const OWNER_URL = location.href.split('#')[0]+'#'+(IS_M?'bailarin':'maria');
+const nLast = {};
+function ntfyPost(path, msg, p, keep){
+  const q = new URLSearchParams({click:OWNER_URL, ...p});
+  // cuerpo de texto sin cabeceras: petición "simple", sin preflight CORS
+  return fetch('https://ntfy.sh/'+path+'?'+q.toString(), {method:'POST', body:msg, keepalive:!!keep, mode:'cors'}).catch(()=>{});
+}
+// aviso inmediato; gap = mínimo entre avisos del mismo tipo
+function notifyOwner(key, title, msg, tags, gap, keep){
+  if(!NT.on || !NT.topic) return;
+  const now = Date.now(); if(nLast[key] && now-nLast[key] < (gap==null?90000:gap)) return; nLast[key] = now;
+  ntfyPost(encodeURIComponent(NT.topic), msg, {title, tags:tags||''}, keep);
+}
+// avisos programados: si nadie lo cuida, ntfy los entrega solo aunque la app esté cerrada
+function cancelSched(k, keep){
+  const sc = NT.sched[k]; if(!sc) return; delete NT.sched[k];
+  if(sc.due > Date.now()) fetch('https://ntfy.sh/'+encodeURIComponent(sc.topic)+'/'+sc.id, {method:'DELETE', keepalive:!!keep}).catch(()=>{});
+}
+function schedule(k, hours, title, msg, tags, keep){
+  if(!NT.on || !NT.topic || S.mode!=='ok' || !(hours>0.05)){ cancelSched(k, keep); return; }
+  hours = Math.min(hours, 70);
+  const due = Date.now()+hours*3600000, old = NT.sched[k];
+  if(old && old.topic===NT.topic && Math.abs(old.due-due) < 15*60000) return; // ya está bien programado
+  cancelSched(k, keep);
+  const id = k+'-'+Date.now().toString(36)+Math.floor(Math.random()*1e4);
+  NT.sched[k] = {id, due, topic:NT.topic};
+  ntfyPost(encodeURIComponent(NT.topic)+'/'+id, msg, {title, tags, delay:Math.max(1,Math.round(hours*60))+'m'}, keep);
+}
+function scheduleAlerts(keep){
+  if(S.mode!=='ok'){ cancelSched('hambre',keep); cancelSched('calle',keep); saveNT(); return; }
+  const s = S.stats;
+  const hHambre = (s.food-20)/RATES.food;
+  schedule('hambre', hHambre, IS_M?'🍜 María tiene hambre':'🍜 Tu Bailarín tiene hambre',
+    `${CARER} no le está dando de comer a ${PETN} y ya tiene hambre. Dile algo 🙄`, 'warning', keep);
+  const hCalle = Math.min(s.food/RATES.food, s.clean/RATES.clean, s.fit/RATES.fit);
+  schedule('calle', hCalle, IS_M?'🍺 María se ha ido de after a la calle':'🍷 Tu Bailarín está bebiendo vino en la calle',
+    `${CARER} ${LO} ha descuidado del todo. Tiene 24 h para rescatar${LO} (ducha, comida y ${IS_M?'bici':'surf'}).`, 'rotating_light', keep);
+  saveNT();
+}
+let schedT = null;
+function scheduleSoon(){ clearTimeout(schedT); schedT = setTimeout(()=>scheduleAlerts(false), 4000); }
+// comprobar umbrales (al abrir y mientras se juega)
+function checkNeglect(){
+  if(!NT.on) return;
+  const s = S.stats, F = NT.flags, now = Date.now();
+  // si un aviso programado ya se entregó, no repetirlo
+  for(const k of ['hambre','calle']){ const sc = NT.sched[k]; if(sc && sc.due <= now){ F[k] = true; delete NT.sched[k]; } }
+  if(S.mode==='ok' && s.food < 20 && !F.hambre){ F.hambre = true;
+    notifyOwner('hambre', IS_M?'🍜 María tiene hambre':'🍜 Tu Bailarín tiene hambre', `${CARER} no le está dando de comer. Hambre al ${Math.round(s.food)}%.`, 'warning', 0); }
+  if(s.food > 50) F.hambre = false;
+  if(S.mode==='ok' && s.clean < 20 && !F.sucio){ F.sucio = true;
+    notifyOwner('sucio', IS_M?'🧼 María está hecha un cristo':'🧼 Tu Bailarín huele a arena y a drama', `${CARER} no ${LO} ha duchado. Limpieza al ${Math.round(s.clean)}%.`, 'warning', 0); }
+  if(s.clean > 50) F.sucio = false;
+  if(S.mode==='ok' && healthy() && s.happy < 20 && s.anemic < 20 && !F.tinder){ F.tinder = true;
+    notifyOwner('tinder', '📱 Peligro de Tinder', `${PETN[0].toUpperCase()+PETN.slice(1)} está sano pero sin cariño. Si ${CARER} no le da mimos pronto, se abre un Tinder.`, 'broken_heart', 0); }
+  if(s.happy > 40 || s.anemic > 40) F.tinder = false;
+  if(S.mode==='wine' && !F.calle){ F.calle = true;
+    notifyOwner('calle', IS_M?'🍺 María se ha ido de after a la calle':'🍷 Tu Bailarín está bebiendo vino en la calle', `${CARER} ${LO} ha descuidado. Tiene 24 h para rescatar${LO}.`, 'rotating_light', 0); }
+  if(S.mode==='ok') F.calle = false;
+  if(S.mode==='over' && !F.over){ F.over = true;
+    notifyOwner('over', '💀 GAME OVER', S.cause==='tinder' ? `${CARER} no le dio cariño y ${PETN} se ha abierto un Tinder. Se acabó.` : `${PETN[0].toUpperCase()+PETN.slice(1)} pasó 24 h en la calle. Se acabó la partida.`, 'skull', 0); }
+  if(S.mode!=='over') F.over = false;
+  saveNT();
+}
+// avisos de lo que hace el cuidador
+const FOOD_N = {bocata:'un bocata de tortilla 🥪', ensalada:'una ensalada 🥗', birra:'una Voll-Damm 🍺', acai:'un açaí bowl 🫐', batido:'un batido verde 🥤', chuche:'una chuche 🍭'};
+function tellOwner(what, extra){
+  const m = {
+    eat:  ['🍽️ '+CARER+' le ha dado de comer', `${CARER} le ha dado ${FOOD_N[extra]||'algo'} a ${PETN}.`, 'fork_and_knife'],
+    shower:['🚿 '+CARER+' '+LO+' ha duchado', `${PETN[0].toUpperCase()+PETN.slice(1)} está limpit${OA} y brillante.`, 'shower'],
+    bed:  ['💞 '+CARER+' se ha acostado con '+PETN, 'Estado anémico al 100%. Qué bonito.', 'heart'],
+    sleep:['😴 '+CARER+' ha mandado a dormir a '+PETN, 'Buenas noches.', 'zzz'],
+    game: ['', '', ''],
+    trip: ['🚐 '+CARER+' se ha llevado de excursión a '+PETN, `Destino: ${extra}.`, 'minibus'],
+    rescue:['🙌 '+CARER+' ha rescatado a '+PETN, `Ha vuelto de la calle. Duchad${OA}, comid${OA} y en forma otra vez.`, 'tada'],
+    newgame:['🥚 '+CARER+' ha empezado una partida nueva', `${PETN[0].toUpperCase()+PETN.slice(1)} vuelve a nacer.`, 'hatching_chick']
+  }[what];
+  if(what==='game'){
+    const n = {surf:['🏄','a surfear'], dance:['💃','a bailar'], bike:['🚵','en bici'], mic:['🎤','a cantar con el micro']}[extra.kind] || ['⭐','a jugar'];
+    notifyOwner('game', `${n[0]} ${CARER} ha llevado ${n[1]} a ${PETN}`, `Ha acertado ${extra.hits} de ${extra.rounds}.${extra.hurt?' Y se ha roto algo 🩹':''}`, 'muscle');
+    scheduleSoon(); return;
+  }
+  if(m) notifyOwner(what, m[0], m[1], m[2], what==='eat'?60000:undefined);
+  scheduleSoon();
+}
+function showNotifs(){
+  const sub = 'https://ntfy.sh/'+encodeURIComponent(NT.topic);
+  modal(`<h2>🔔 Avisos para ${OWNER}</h2>
+  <p>Esta mascota es de ${OWNER}. Cada vez que ${CARER} haga algo con ${PETN}, o si ${LO} descuida (hambre, suciedad, peligro de Tinder, calle), a ${OWNER} le llega una notificación al móvil.</p>
+  <p><b>Para recibirlas, ${OWNER} tiene que:</b><br>1. Instalar la app gratuita <b>ntfy</b> (App Store o Google Play).<br>2. Pulsar <b>+</b> y suscribirse al tema:<br><code style="user-select:all;font-size:15px">${NT.topic}</code></p>
+  <p><small>Los avisos salen del móvil de ${CARER}, que es quien juega con ${PETN}. Si no abre el juego, el aviso de hambre llega igual a su hora.</small></p>
+  <p><label>Tema: <input id="ntTopic" value="${NT.topic}" style="font:inherit;width:100%;padding:4px;border:2px solid #3b2340;border-radius:6px"></label></p>
+  <div class="opts"><button data-t>📨 Mandar aviso de prueba</button><button data-o>${NT.on?'🔕 Desactivar avisos':'🔔 Activar avisos'}</button><a href="${sub}" target="_blank" rel="noopener" style="text-align:center">Ver avisos en la web</a><button data-x>Cerrar</button></div>`);
+  const card = $('card');
+  const upd = ()=>{ const v = card.querySelector('#ntTopic').value.trim().replace(/[^A-Za-z0-9_-]/g,''); if(v && v!==NT.topic){ cancelSched('hambre'); cancelSched('calle'); NT.topic = v; saveNT(); scheduleAlerts(); } };
+  card.querySelector('[data-t]').onclick = ()=>{ upd(); notifyOwner('test', `🔔 Prueba de ${CARER}`, `Así te llegarán los avisos de ${PETN}.`, 'bell', 0); say('Aviso de prueba enviado a '+OWNER+'. 📨'); };
+  card.querySelector('[data-o]').onclick = ()=>{ upd(); NT.on = !NT.on; if(!NT.on){ cancelSched('hambre'); cancelSched('calle'); } saveNT(); if(NT.on) scheduleAlerts(); showNotifs(); };
+  card.querySelector('[data-x]').onclick = ()=>{ upd(); closeModal(); };
+}
 
 // inicio
 function goPet(p){ try{ save(); localStorage.setItem('el-bailarin-last-pet', p); }catch(e){} location.hash=p; location.reload(); }
 ensureWardrobe(); $('stars').textContent='⭐ '+S.stars;
 $('helpBtn').addEventListener('click',()=>{ if(!anim&&!game) ACTIONS.help(); });
+$('bellBtn').addEventListener('click',()=>{ if(!anim&&!game) showNotifs(); });
 $('swap').textContent = IS_M ? '🩰 Cambiar al Bailarín' : '🚵‍♀️ Cambiar a María';
 $('swap').addEventListener('click',()=>goPet(IS_M?'bailarin':'maria'));
 var lockModal=false;
@@ -1296,11 +1411,12 @@ else if(!S.introSeen){
 } else if(S.welcome==='wine'){ say(IS_M?'Mientras no estabas... me fui de after con una birra. 🍺 Rescátame.':'Mientras no estabas... me fui a la calle con un cartón de vino. 🍷 Rescátame.',8000); }
 else setTimeout(()=>say(pick(IS_M?['¡Bailarín! Por fin. Ponme una birra y te cuento.','¡Hola! ¿Hoy qué nos jugamos el cuello?','¡Has vuelto! Tenía un plan arriesgadísimo para ti.']:['¡María! Has vuelto. Te he echado de menos en espiral.','¡Hola! Llevaba un rato haciendo pliés esperándote.','¡Por fin! Tenía una pieza preparada para ti.'])),800);
 requestAnimationFrame(loop);
+if(!SELECTING){ setTimeout(()=>{ checkNeglect(); scheduleAlerts(); },2000); }
 
 
 // ganchos de prueba
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
-window.__B = {get S(){return S;}, set S(v){S=v;}, step, startTrip, proposeTrip, TRIPS, drawGuy, sceneBeach, ctx, save, POSES, setPose, ACTIONS, collectGift, spawnGift};
+window.__B = {get S(){return S;}, set S(v){S=v;}, step, startTrip, proposeTrip, TRIPS, drawGuy, sceneBeach, ctx, save, POSES, setPose, ACTIONS, collectGift, spawnGift, get NT(){return NT;}, checkNeglect, scheduleAlerts, tellOwner};
 })();
 </script>
 
