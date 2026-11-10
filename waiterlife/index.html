@@ -182,8 +182,9 @@ const TOPS = ['Camiseta','Camisa','Sudadera','Tirantes','Chaqueta','Rayas','Vest
 const COLORS = [['Blanco','#f2f2f2'],['Negro','#2a2630'],['Rojo','#d23b3b'],['Azul','#3a6fd8'],['Celeste','#7fd3f7'],['Verde','#3fa860'],['Amarillo','#f4c534'],['Rosa','#f27fb2'],['Morado','#8a55c9'],['Naranja','#f08a2c'],['Gris','#8d8d99'],['Marrón','#7a4b2a'],['Vaquero','#3d5a8a'],['Caqui','#8a8a4a']];
 const BOTTOMS = ['Pantalón','Pantalón corto','Falda','Chándal'];
 const ACCS = ['Nada','Gorra','Gorro de lana','Pendientes','Collar','Pajarita','Delantal','Auriculares','Bandana','Gorro de chef'];
+const GENDERS = ['Hombre','Mujer','Género fluido'];
 const FIELDS = [
-  ['sk','Piel',SKINS,1],['hs','Peinado',HAIRS],['hc','Color pelo',HAIRC,1],['ey','Ojos',EYES],['mo','Boca',MOUTHS],
+  ['gn','Género',GENDERS],['sk','Piel',SKINS,1],['hs','Peinado',HAIRS],['hc','Color pelo',HAIRC,1],['ey','Ojos',EYES],['mo','Boca',MOUTHS],
   ['fh','Vello facial',FACIAL],['tp','Ropa arriba',TOPS],['tc','Color arriba',COLORS,1],['bt','Ropa abajo',BOTTOMS],
   ['bc','Color abajo',COLORS,1],['ac','Complemento',ACCS]];
 function randAvatar(){const a={};for(const [k,,list] of FIELDS)a[k]=Math.floor(Math.random()*list.length);
@@ -308,11 +309,27 @@ function drinksOf(id){
   const pre='d:'+id+':'+b.at+':';
   return Object.keys(DB.recs).filter(k=>k.startsWith(pre)&&rec(k)).map(k=>({k,...rec(k)})).sort((a,b)=>a.t-b.t);
 }
-function drunkLevel(id){
+function unitsOf(id){
   const now=Date.now(); let u=0;
   for(const d of drinksOf(id)){const D=DRINKS[d.ty];if(!D)continue;u+=D.u*Math.max(0,1-(now-d.t)/BURN_MS)}
-  return u<0.6?0:u<1.6?1:u<3?2:u<4.5?3:u<6?4:5;
+  return u;
 }
+// con límite propio (botón "cliente ebrio") la carita se gradúa respecto a ese límite: al llegar a él, nivel 4
+function drunkLevel(id){
+  const u=unitsOf(id), c=cust(id), b=visit(id); let lv;
+  if(c&&c.lim){const r=u/c.lim; lv=r<.15?0:r<.35?1:r<.6?2:r<.85?3:r<1.15?4:5}
+  else lv=u<0.6?0:u<1.6?1:u<3?2:u<4.5?3:u<6?4:5;
+  if(b&&b.drunk)lv=Math.max(lv,4);
+  return lv;
+}
+const DRUNK_TYPES={dormido:['😴','Tranquilo, adormecido'],pesado:['🗣️','Pesado, habla sin parar'],llorar:['😭','Le da por llorar'],agresivo:['😡','Agresivo']};
+const DRUNK_SAY={dormido:['Zzz…','Cinco minutitos más…','Mmmh…'],
+  pesado:['Escúchame, escúchame…','Y entonces le dije…','¿Te he contado lo de mi primo?','Tú eres mi mejor amigo','Espera, que no he acabado','Lo que yo te diga…','¿Sabes lo que te digo?','Una cosa te voy a decir…'],
+  llorar:['Snif… snif…','Nadie me quiere…','¡Os quiero mucho a todos!','Es que me acuerdo de ella…','Esta canción me mata…'],
+  agresivo:['¿Qué miras?','¡A que no hay narices!','¡Esto es un robo!','¡Ponme otra o la liamos!','¿Tienes algún problema?']};
+// modo borrachera: activado con el botón o al pasar su límite
+function drunkMode(id){const c=cust(id),b=visit(id);if(!c||!b)return null;
+  if(b.drunk||(c.lim&&unitsOf(id)>=c.lim))return DRUNK_TYPES[c.dt]?c.dt:'pesado';return null}
 const me = () => DB.me ? rec('w:'+DB.me) : null;
 const pres = id => rec('p:'+id);
 const onDuty = id => {const p=pres(id);return !!(p&&p.d&&Date.now()-p.s<14*3600e3)};
@@ -707,7 +724,8 @@ function drawChar(g,a,fx,fy,o={}){
   if(a.bt===2&&a.tp!==6){r(3,19,8,4,bc);r(3,22,8,1,bd)}
   // torso y brazos
   const tp=a.tp|0, sleeve=tp===3?s:tc;
-  r(3,12,8,8,tc); r(3,19,8,1,td);
+  if(a.gn===1){r(3,12,8,4,tc);r(4,16,6,4,tc);r(4,19,6,1,td);r(3,13,1,1,tl);r(10,13,1,1,tl)} else {r(3,12,8,8,tc); r(3,19,8,1,td);}
+  if(a.gn===2){r(9,13,1,1,'#ff5fa2');r(10,13,1,1,'#7fd3f7');r(9,14,1,1,'#f4c534');r(10,14,1,1,'#8a55c9')}
   if(tp===6){r(3,19,8,5,tc);r(2,22,10,2,tc);r(2,23,10,1,td)}
   const sw=o.walk?(wf===1?1:wf===3?-1:0):0;
   r(1,12+sw,2,6,sleeve);r(11,12-sw,2,6,sleeve);r(1,18+sw,2,2,s);r(11,18-sw,2,2,s);
@@ -723,7 +741,8 @@ function drawChar(g,a,fx,fy,o={}){
   r(3,2,8,9,s);r(2,3,10,7,s);r(1,5,1,2,s);r(12,5,1,2,s);r(4,10,6,1,sd);
   // ojos
   const ey=a.ey|0, lv=o.lv|0, blink=o.blink;
-  if(lv>=4){for(const bx of [3,8]){r(bx,4,1,1,dark);r(bx+2,4,1,1,dark);r(bx+1,5,1,1,dark);r(bx,6,1,1,dark);r(bx+2,6,1,1,dark)}}
+  if(o.dmode==='dormido'){r(3,6,3,1,dark);r(8,6,3,1,dark)}
+  else if(lv>=4){for(const bx of [3,8]){r(bx,4,1,1,dark);r(bx+2,4,1,1,dark);r(bx+1,5,1,1,dark);r(bx,6,1,1,dark);r(bx+2,6,1,1,dark)}}
   else if(blink||ey===2||lv===3){r(3,6,1,1,dark);r(4,5,1,1,dark);r(5,6,1,1,dark);r(8,6,1,1,dark);r(9,5,1,1,dark);r(10,6,1,1,dark)}
   else if(ey===1){r(3,5,3,2,'#fff');r(8,5,3,2,'#fff');r(4,5,2,2,dark);r(9,5,2,2,dark);r(4,5,1,1,'#fff');r(9,5,1,1,'#fff')}
   else {r(4,5,1,2,dark);r(9,5,1,2,dark); if(lv===2){r(4,5,1,1,s);r(9,5,1,1,s)}}
@@ -734,6 +753,8 @@ function drawChar(g,a,fx,fy,o={}){
   // mofletes de borrachera
   if(lv>=1){r(2,7,2,1,lv>=3?'#ff5f7a':'#ff9aa8');r(10,7,2,1,lv>=3?'#ff5f7a':'#ff9aa8')}
   if(lv>=4){r(3,8,8,1,'rgba(120,200,80,.35)')}
+  if(o.dmode==='agresivo'){r(3,3,1,1,dark);r(4,4,2,1,dark);r(10,3,1,1,dark);r(8,4,2,1,dark);r(2,7,10,3,'rgba(230,30,30,.28)')}
+  if(o.dmode==='llorar'){const k=Math.floor((o.t||0)/140)%5;r(4,7+k,1,1,'#7fd3f7');r(9,7+(k+2)%5,1,1,'#7fd3f7');r(4,7,1,1,'#bfe8ff');r(9,7,1,1,'#bfe8ff')}
   // vello facial
   const fh=a.fh|0;
   if(fh===2){r(2,7,1,3,hc);r(11,7,1,3,hc);r(3,8,8,3,hc);r(4,11,6,1,hd)}
@@ -861,17 +882,22 @@ function drawCustomer(id,t,now){
   const walking=A.path.length>0, sp=spotOf(VIEW,A.s);
   const seated=!walking&&!A.leaving&&sp&&sp.sit;
   const [x,y]=P(A.i,A.j,seated?sp.sit:0);
-  const lv=drunkLevel(id), act=b&&!walking?b.act:null;
-  const sway=lv>=2?Math.round(Math.sin(t/(500-lv*50)+id.length)*Math.min(2,lv-1)):0;
+  const lv=drunkLevel(id), act=b&&!walking?b.act:null, dm=drunkMode(id);
+  let sway=lv>=2?Math.round(Math.sin(t/(500-lv*50)+id.length)*Math.min(2,lv-1)):0;
+  if(dm==='agresivo')sway=Math.round(Math.sin(t/45))*(Math.floor(t/900)%3===0?1:0)+sway;
+  if(dm==='dormido')sway=Math.round(Math.sin(t/1400)*1);
   const ds=drinksOf(id); const last=ds[ds.length-1];
   const drink=last&&now-last.t<25*60e3?last.ty:null;
   ctx.globalAlpha=Math.max(0,Math.min(1,1-Math.max(A.i-C,-A.j*1.6,A.i+A.j-15.5,0)/1.2));
-  drawChar(ctx,c.a,x,y,{sit:seated,walk:walking?(Math.floor(A.walkT*8)%4):0,lv,dx:sway,drink:act==='periodico'?null:drink,paper:act==='periodico'&&seated,t,blink:Math.sin(t/1100+id.charCodeAt(0))>0.985});
+  drawChar(ctx,c.a,x,y+(dm==='dormido'&&seated&&Math.sin(t/1400)>.3?1:0),{sit:seated,walk:walking?(Math.floor(A.walkT*8)%4):0,lv,dx:sway,dmode:dm,drink:act==='periodico'?null:drink,paper:act==='periodico'&&seated,t,blink:Math.sin(t/1100+id.charCodeAt(0))>0.985});
   HITS.push({kind:'c',id,x0:x-9,y0:y-34,x1:x+9,y1:y+(seated?8:2)});
   const top=y-29-(c.a&&(c.a.hs===4||c.a.hs===7||c.a.hs===8||c.a.hs===10)?3:0);
   const endX=nameTag(ctx,x,top,c.n);
   const fb=lv>=3?Math.round(Math.sin(t/200)):0;
   drawFace(ctx,endX+2,top-8+fb,lv);
+  if(dm){ctx.font='8px serif';ctx.fillText(DRUNK_TYPES[dm][0],endX+12,top-0.5);
+    if(dm==='dormido'){ctx.fillStyle='#fff';ctx.font='6px VT323,monospace';const k=(t/1600)%1;ctx.globalAlpha=1-k;ctx.fillText('z',x+6+k*6,top-10-k*10);ctx.fillText('Z',x+9+k*8,top-16-k*12);ctx.globalAlpha=1}
+    if(dm==='agresivo'&&Math.floor(t/500)%2){ctx.font='7px serif';ctx.fillText('💢',x-12,top-4)}}
   if(lv>=5&&Math.floor(t/500)%2){ctx.fillStyle='#fff';ctx.font='6px VT323,monospace';ctx.fillText('z',endX+12,top-8)}
   if(SAY[id]&&SAY[id].until>now)bubble(ctx,x,top-9,SAY[id].text);
   ctx.globalAlpha=1;
@@ -929,6 +955,8 @@ function frame(t){
     const A=ANIM[f.id];if(!A)continue;const [x,y]=P(A.i,A.j,8);ctx.globalAlpha=1-k*k;ctx.font='9px serif';ctx.fillText(f.text,x+6,y-30-k*14);ctx.globalAlpha=1}
   if(ev)drawEvent(ctx,t,ev);
   // frases al azar: las suyas o las de su actividad (y del evento)
+  for(const id in ANIM){const A=ANIM[id];if(A.leaving||A.path.length)continue;const dm=drunkMode(id);if(!dm||(SAY[id]&&SAY[id].until>now+200))continue;
+    const rate={pesado:1.2,agresivo:.25,llorar:.2,dormido:.06}[dm];if(Math.random()<dt*rate){const l=DRUNK_SAY[dm];say(id,l[Math.floor(Math.random()*l.length)],dm==='pesado'?2600:3800)}}
   if(Math.random()<dt*0.05){const ids=Object.keys(ANIM).filter(id=>!ANIM[id].leaving&&!ANIM[id].path.length);if(ids.length){const id=ids[Math.floor(Math.random()*ids.length)];const c=cust(id),b=visit(id);
     if(c&&b&&!(SAY[id]&&SAY[id].until>now)){const own=(c.f||[]).filter(Boolean);let pool=own.length&&Math.random()<.55?own:(ACT_SAY[b.act]||ACT_SAY.mirar);
       if(ev&&Math.random()<.45)pool=EV_SAY[ev.k]||pool; if(ev&&ev.k==='futbol'&&b.act!=='tele'&&VIEW==='alante')pool=ACT_SAY.mirar;
@@ -1051,7 +1079,7 @@ $('#bBar').onclick=e=>dropdown(e.currentTarget,'Ahora en el bar',d=>{
   d.appendChild(info);
   if(!list.length){const em=document.createElement('div');em.className='empty';em.textContent='No hay nadie en el bar.';d.appendChild(em)}
   list.forEach(c=>{const ds=drinksOf(c.id),lv=drunkLevel(c.id),inv=ds.filter(x=>!x.p).length;
-    item(d,faceIcon(lv),c.n,`${ZONES[zoneOf(visit(c.id))][0]} ${(ACTS[visit(c.id).act]||[''])[0]} ${LEVELS[lv]} · desde ${hm(visit(c.id).at)} · ${ds.length?ds.map(x=>(DRINKS[x.ty]||{}).e||'').join(''):'aún nada'}${inv?' · 🎁'+inv:''}`,()=>{closeDrop();setView(zoneOf(visit(c.id)));setTimeout(()=>openPop(c.id),50)})});
+    item(d,faceIcon(lv),c.n,`${ZONES[zoneOf(visit(c.id))][0]} ${(ACTS[visit(c.id).act]||[''])[0]} ${drunkMode(c.id)?'🥴'+DRUNK_TYPES[drunkMode(c.id)][0]+' ':''}${LEVELS[lv]} · desde ${hm(visit(c.id).at)} · ${ds.length?ds.map(x=>(DRINKS[x.ty]||{}).e||'').join(''):'aún nada'}${inv?' · 🎁'+inv:''}`,()=>{closeDrop();setView(zoneOf(visit(c.id)));setTimeout(()=>openPop(c.id),50)})});
 });
 function renderTabs(){
   const box=$('#tabs');if(!box)return;const cnt={};for(const c of inBar()){const z=zoneOf(visit(c.id));cnt[z]=(cnt[z]||0)+1}
@@ -1150,6 +1178,7 @@ function serve(id,ty,label){
   renderPop();
 }
 const PAY={}; function payMode(id){return PAY[id]!==false}
+const fmtU=u=>(Math.round(u*10)/10).toString().replace('.',',');
 const usualOf=c=>[...(c.p||[]).filter(x=>x&&x[0]&&DRINKS[x[1]]),...(c.fd||[]).filter(Boolean).map(n=>[n,'comida'])];
 
 // ---------- menú del cliente ----------
@@ -1177,6 +1206,8 @@ function renderPop(){
     <button class="btn x" data-a="close">✕</button></div>
   <div class="sec"><div class="pay"><button class="btn ${payMode(id)?'sel ok':''}" data-a="paid">💶 Paga</button><button class="btn ${!payMode(id)?'sel gold':''}" data-a="inv">🎁 Le invitan</button></div></div>
   ${usual.length?`<div class="sec"><div class="lbl">Lo de siempre</div><div class="grid">${usual.map((u,n)=>`<button class="btn pri" data-a="u" data-n="${n}">${DRINKS[u[1]].e} ${esc(u[0])}</button>`).join('')}</div></div>`:''}
+  <div class="sec"><div class="lbl">${c.lim?`Su límite: ≈ ${fmtU(c.lim)} copas · lleva ≈ ${fmtU(unitsOf(id))}`:'Sin límite propio todavía'}${drunkMode(id)?' · '+DRUNK_TYPES[drunkMode(id)][0]+' modo borrachera':''}</div>
+    <div class="pay">${b.drunk?`<button class="btn ok" data-a="sober">✅ Ya está mejor</button>`:`<button class="btn warn" data-a="drunk">🥴 Cliente ebrio</button>`}${c.lim?`<button class="btn" data-a="nolim">↺ Quitar límite</button>`:''}</div></div>
   <div class="sec"><div class="lbl">Está en</div><div class="grid">${ZONE_KEYS.map(k=>`<button class="btn ${k===z?'sel gold':''}" data-a="z" data-k="${k}">${ZONES[k][0]} ${k==='dentro'?'Dentro':k==='atras'?'Atrás':'Alante'}</button>`).join('')}</div>
     <div class="lbl">Haciendo</div><div class="grid">${acts.map(k=>`<button class="btn ${k===b.act?'sel gold':''}" data-a="act" data-k="${k}">${ACTS[k][0]} ${ACTS[k][1].replace('Leer el ','').replace('Sentarse a ','')}</button>`).join('')}</div></div>
   <div class="sec"><div class="lbl">Bebida y comida</div><div class="grid">${DRINK_KEYS.map(k=>`<button class="btn" data-a="d" data-k="${k}">${DRINKS[k].e} ${DRINKS[k].n}</button>`).join('')}</div></div>
@@ -1198,6 +1229,11 @@ $('#pop').addEventListener('click',e=>{
   else if(a==='say'){const f=(c.f||[]).filter(Boolean);say(id,f.length?f[Math.floor(Math.random()*f.length)]:'...')}
   else if(a==='edit'){closePop();editCustomer(id)}
   else if(a==='leave')leave(id);
+  else if(a==='drunk'){const u=unitsOf(id), lim=Math.max(.5,Math.round(u*10)/10), cc=cust(id), bb=visit(id);
+    put('c:'+id,Object.assign({},cc,{lim}),null); put('b:'+id,Object.assign({},bb,{drunk:1}),`${myName()}: ${cc.n} va ebrio 🥴 (límite ≈ ${fmtU(lim)} copas)`);
+    const dm=DRUNK_TYPES[cc.dt]?cc.dt:'pesado'; const l=DRUNK_SAY[dm]; say(id,l[Math.floor(Math.random()*l.length)],3500); renderPop()}
+  else if(a==='sober'){const bb=visit(id);put('b:'+id,Object.assign({},bb,{drunk:0}),`${myName()}: ${c.n} ya está mejor`);renderPop()}
+  else if(a==='nolim'){const cc=cust(id);const nc=Object.assign({},cc);delete nc.lim;put('c:'+id,nc,`${myName()}: quita el límite de ${cc.n}`);renderPop()}
 });
 
 cv.addEventListener('click',e=>{
@@ -1249,6 +1285,8 @@ function editCustomer(id){
    ${[0,1].map(n=>`<div class="row"><span class="k">🍽️ Comida ${n+1}</span><input data-fd="${n}" maxlength="22" value="${esc(c&&c.fd?c.fd[n]||'':'')}" placeholder="${['Bravas','Pincho de tortilla'][n]}"></div>`).join('')}
    <div class="row"><span class="k">Actividades</span><div class="chips" data-acts>${ACT_KEYS.map(k=>`<button class="btn ${(c&&c.acts||[]).includes(k)?'sel':''}" data-act="${k}">${ACTS[k][0]} ${ACTS[k][1]}</button>`).join('')}</div></div>
    <p class="hint" style="margin-left:114px">Hasta 3.</p>
+   <div class="row"><span class="k">Borrachera</span><select data-dt>${Object.keys(DRUNK_TYPES).map(k=>`<option value="${k}" ${(c&&c.dt||'pesado')===k?'selected':''}>${DRUNK_TYPES[k][0]} ${DRUNK_TYPES[k][1]}</option>`).join('')}</select></div>
+   ${c&&c.lim?`<div class="row"><span class="k">Su límite</span><span class="v">≈ ${fmtU(c.lim)} copas</span><label style="font-size:17px"><input type="checkbox" data-nolim style="flex:none"> quitar</label></div>`:''}
    <div class="row"><span class="k">Suele estar</span><select data-zone>${ZONE_KEYS.map(k=>`<option value="${k}" ${(c&&c.z||'dentro')===k?'selected':''}>${ZONES[k][0]} ${ZONES[k][1]}</option>`).join('')}</select></div>`;
   const ed=avatarEditor({title:c?'Editar cliente':'Nuevo cliente',a:c&&c.a,name:c&&c.n,nameLabel:'Mote',namePh:'El de la gorra',extra,
     onSave:(a,n,m)=>{
@@ -1258,7 +1296,9 @@ function editCustomer(id){
       const acts=[...m.querySelectorAll('[data-acts] .sel')].map(b=>b.dataset.act).slice(0,3);
       const z=m.querySelector('[data-zone]').value;
       const cid=id||rid();
-      put('c:'+cid,{n,a,f,p,fd,acts,z,ct:c?c.ct:Date.now()},`${myName()}: ${c?'ha editado a':'nuevo cliente:'} ${n}`);
+      const dt=m.querySelector('[data-dt]').value, nl=m.querySelector('[data-nolim]');
+      const rec_={n,a,f,p,fd,acts,z,dt,ct:c?c.ct:Date.now()}; if(c&&c.lim&&!(nl&&nl.checked))rec_.lim=c.lim;
+      put('c:'+cid,rec_,`${myName()}: ${c?'ha editado a':'nuevo cliente:'} ${n}`);
       toast(c?'Cliente guardado':'¡'+n+' ya es cliente!');
     },
     onDelete:c?()=>{if(visit(id))leave(id,true);put('c:'+id,null,`${myName()}: ha borrado a ${c.n}`)}:null});
@@ -1297,6 +1337,7 @@ function help(){
   const m=modal(`<h3>Cómo funciona</h3>
   <p>🚶 <b>Llega…</b>: elige el mote del cliente y entra caminando al bar.</p>
   <p>👆 <b>Pulsa sobre un cliente</b> para servirle: elige si paga o le invitan, y luego la bebida o lo de siempre.</p>
+  <p>🥴 <b>Cliente ebrio</b>: lo que lleva en ese momento pasa a ser su límite; desde entonces su carita se gradúa con ese límite y, al pasarlo, entra en su modo borrachera (adormecido, pesado, llorón o agresivo, según su ficha).</p>
   <p>🙂 La carita encima de cada cliente se va emborrachando según lo que lleva (cada copa deja de contar a las 2,5 h).</p>
   <p>👋 <b>Se va</b> cuando sale del bar. ➕ <b>Cliente</b> crea uno nuevo con su aspecto, dos frases típicas y tres cosas que suele pedir.</p>
   <p>🔒 El bar es privado: solo entra quien tenga el enlace con la clave, y todo lo que se envía va cifrado con ella.</p>
