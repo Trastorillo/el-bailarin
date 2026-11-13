@@ -55,6 +55,10 @@ patch('K=Math.max(2,Math.min(7,Math.ceil(SC*(window.devicePixelRatio||1))));', '
 patch("g.fillStyle='#140b1d'; g.fillRect(0,0,stat.width,stat.height);", "g.fillStyle='#ffffff'; g.fillRect(0,0,stat.width,stat.height);");
 // el Kobo no tiene chat directo (WebRTC): siempre va por el canal cifrado del bar
 patch(":p2pState==='ok'?'nadie en directo':'conectando…';", ":'por el canal del bar (cada 15 s)';");
+// los menús desplegables van a pantalla completa, con su botón de cerrar
+patch("$('#stage').appendChild(d);openDrop=d;", "document.body.appendChild(d);openDrop=d;");
+patch("d.innerHTML='<h4>'+esc(d._title)+'</h4>';", "d.innerHTML='<h4>'+esc(d._title)+'<button class=\"btn x\" data-close>✕ Cerrar</button></h4>';");
+patch('<button class="btn x" data-a="close">✕</button>', '<button class="btn x" data-a="close">✕ Cerrar</button>');
 // avisos más largos (la pantalla tarda en refrescar)
 patch('setTimeout(()=>t.remove(),4200)', 'setTimeout(()=>t.remove(),9000)');
 // emojis en blanco y negro (Noto Emoji) también dentro de la escena

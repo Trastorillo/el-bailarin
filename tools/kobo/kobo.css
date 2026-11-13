@@ -94,3 +94,31 @@ input{-webkit-box-flex:1;-webkit-flex:1;flex:1}
 #chat form{display:-webkit-box;display:-webkit-flex;display:flex;padding:.25em;border-top:2px solid #000}
 #chat form .btn{margin-left:.25em}
 .sumf{width:1.2em;height:1.2em;image-rendering:pixelated;-webkit-flex:none;flex:none}
+
+/* ===== Menús, fichas y chat a pantalla completa (sin tener que desplazar) ===== */
+#pop,.drop,#chat{position:absolute;left:0;top:0;right:0;bottom:0;z-index:40;border:0;max-height:none}
+.drop{z-index:41}
+#pop .hd,.drop h4,#chat .ch{padding:.3em .5em;font-size:1.15rem}
+.drop h4{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center}
+.btn.x{margin-left:auto;background:#fff;color:#000;font-size:1.05rem;padding:.25em .7em;border:3px solid #fff;outline:2px solid #000}
+.drop .it{float:left;width:50%;border-right:1px solid #000;min-height:2.6em}
+.drop .empty{clear:both}
+#pop .sec{padding:.3em .5em}
+#pop .grid .btn,#pop .pay .btn{padding:.45em .15em;font-size:.95rem}
+#pop .hist{max-height:5.5em}
+/* fichas de cliente y camarero: las opciones en dos columnas */
+.ed .opts .row{float:left;width:50%;padding-right:.4em}
+.ed .opts .row .k{width:4.6em}
+.ed .opts .hint,.ed .opts .acts,.ed .opts p{clear:both}
+.ed .opts .row[data-p],.ed .opts .row:first-child{width:100%}
+/* apaisado: la ficha del cliente en dos columnas y las pestañas sobre la escena, abajo */
+body.kl #pop .sec{display:inline-block;vertical-align:top;width:48.5%;margin-right:.5%}
+body.kl #tabs{top:auto!important;bottom:0;background:#fff;border-top:2px solid #000}
+.ed .pv{float:left;width:6.5em;margin-right:.5em}
+.ed .opts{overflow:hidden}
+.ed .opts .row[data-p]{width:50%}
+.modal .row,.modal input,.modal select,.modal .btn,.modal .chips .btn{font-size:.8rem}
+.modal .row{margin:.1em 0}
+.card h3{font-size:1.1rem;margin-bottom:.15em}
+.modal .hint{margin:.1em 0}
+body:not(.kl) .ed .opts .row[data-p]{width:100%}

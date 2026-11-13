@@ -41,10 +41,16 @@ function resize(){
   let el = document.getElementById('kdyn');
   if(!el){ el = document.createElement('style'); el.id = 'kdyn'; document.head.appendChild(el) }
   const h = KSCH + 3;
-  el.textContent = '#pop,.drop,#chat{top:' + h + 'px!important;left:0!important;bottom:0;max-height:none}' +
-    '#tabs{top:' + h + 'px}';
+  const land = (window.innerWidth || 0) > (window.innerHeight || 0);
+  document.body.className = document.body.className.replace(/\s*\bkl\b/g, '') + (land ? ' kl' : '');
+  el.textContent = land ? '' : '#tabs{top:' + h + 'px}';
   kRedraw(100);
 }
+
+// --- fichas, menús y chat a pantalla completa: fuera del escenario, encima de todo ---
+document.body.appendChild($('#pop')); document.body.appendChild($('#chat'));
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-close]'); if(t){ e.preventDefault(); closeDrop() } }, true);
+window.addEventListener('orientationchange', () => setTimeout(resize, 400));
 
 // --- de color a grises con contraste, pensado para los 16 grises de la tinta electrónica ---
 const KCURVE = (function(){
