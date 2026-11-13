@@ -1,0 +1,17 @@
+{
+  "name": "waiterlife-kobo-build",
+  "private": true,
+  "description": "Genera waiterlife/kobo/index.html (versión para el navegador del Kobo) a partir de waiterlife/index.html",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.13",
+    "@babel/preset-env": "7.29.14",
+    "acorn": "8.19.0",
+    "babel-plugin-polyfill-corejs3": "1.0.0",
+    "core-js": "3.51.0",
+    "esbuild": "0.25.12",
+    "sjcl": "1.0.9"
+  }
+}
