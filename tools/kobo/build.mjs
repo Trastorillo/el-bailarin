@@ -73,12 +73,14 @@ const step1 = babel.transformSync(modern, {
   presets: [[require.resolve('@babel/preset-env'), { targets, modules: false }]],
   plugins: [[require.resolve('babel-plugin-polyfill-corejs3'), { method: 'usage-global', version: require('core-js/package.json').version, targets }]]
 }).code;
-fs.writeFileSync(path.join(tmp, 'app.js'), step1);
-const bundled = (await esbuild.build({ entryPoints: [path.join(tmp, 'app.js')], bundle: true, write: false, format: 'iife', target: 'es2015', minify: false, logLevel: 'error', absWorkingDir: here, nodePaths: [path.join(here, 'node_modules')] })).outputFiles[0].text;
-const es5 = babel.transformSync(bundled, {
-  babelrc: false, configFile: false, sourceType: 'script', compact: false, comments: false,
-  presets: [[require.resolve('@babel/preset-env'), { targets, modules: false }]]
-}).code;
+// las líneas require("core-js/modules/…") que ha puesto babel se juntan en un paquete aparte:
+// core-js ya es ES5 y NO debe pasar otra vez por babel (lo rompe en el Kobo: "Incompatible receiver, Symbol required")
+const mods = [];
+const appCode = step1.replace(/^require\("(core-js\/modules\/[^"]+)"\);\n?/gm, (m, id) => { mods.push(id); return '' });
+if (/\brequire\(/.test(appCode)) throw new Error('queda algún require() en el código de la app');
+fs.writeFileSync(path.join(tmp, 'poly.js'), mods.map(m => `require(${JSON.stringify(m)});`).join('\n'));
+const poly = (await esbuild.build({ entryPoints: [path.join(tmp, 'poly.js')], bundle: true, write: false, format: 'iife', target: 'es5', minify: true, logLevel: 'error', absWorkingDir: here, nodePaths: [path.join(here, 'node_modules')] })).outputFiles[0].text;
+const es5 = poly + '\n' + appCode;
 acorn.parse(es5, { ecmaVersion: 5 }); // falla si queda algo moderno
 fs.rmSync(tmp, { recursive: true, force: true });
 
@@ -102,6 +104,9 @@ ${css}</style>
 <script>
 /* Si algo falla en el Kobo, lo enseña en pantalla (el navegador del Kobo no tiene consola) */
 window.__kstep = 'cargando';
+/* El WebKit del Kobo trae un Symbol a medias: core-js se lía al mezclarlo con el suyo.
+   Se quita para que core-js ponga uno completo y coherente. */
+try { if (typeof Symbol !== 'undefined') { window.Symbol = undefined; try { delete window.Symbol; } catch (e) {} } } catch (e) {}
 window.onerror = function (msg, src, line, col) {
   try {
     var b = document.getElementById('kerr');
