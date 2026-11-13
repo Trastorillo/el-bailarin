@@ -1,3 +1,4 @@
+window.__kstep = 'piezas';
 // ===== Piezas que le faltan al navegador del Kobo (WebKit antiguo) =====
 // Se cargan antes que el código de WaiterLife. Babel + core-js ponen el resto (Promise, Set, padStart…).
 
@@ -90,3 +91,5 @@ document.addEventListener('click', () => kRedraw(150), true);
 let KSCH = 0;
 const KSIZES = [16, 19, 22, 26, 30, 35];
 let kSize = parseInt(lsGet('wl-kobo-size'), 10);
+
+window.__kstep = 'app';

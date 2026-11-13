@@ -1,3 +1,4 @@
+window.__kstep = 'ajustes';
 // ===== Ajustes de WaiterLife para el Kobo (van después del código de la app) =====
 
 // --- datos: en vez de un stream (EventSource), preguntar a ntfy cada 15 s ---
@@ -86,3 +87,5 @@ setTimeout(() => { buildStatic(); kRedraw(50) }, 8000);
 // --- arranque del bucle ---
 resize();
 kRedraw(300);
+
+window.__kstep = 'en marcha';

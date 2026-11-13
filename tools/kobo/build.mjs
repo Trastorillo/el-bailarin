@@ -74,9 +74,9 @@ const step1 = babel.transformSync(modern, {
   plugins: [[require.resolve('babel-plugin-polyfill-corejs3'), { method: 'usage-global', version: require('core-js/package.json').version, targets }]]
 }).code;
 fs.writeFileSync(path.join(tmp, 'app.js'), step1);
-const bundled = (await esbuild.build({ entryPoints: [path.join(tmp, 'app.js')], bundle: true, write: false, format: 'iife', target: 'es2015', minify: true, logLevel: 'error', absWorkingDir: here, nodePaths: [path.join(here, 'node_modules')] })).outputFiles[0].text;
+const bundled = (await esbuild.build({ entryPoints: [path.join(tmp, 'app.js')], bundle: true, write: false, format: 'iife', target: 'es2015', minify: false, logLevel: 'error', absWorkingDir: here, nodePaths: [path.join(here, 'node_modules')] })).outputFiles[0].text;
 const es5 = babel.transformSync(bundled, {
-  babelrc: false, configFile: false, sourceType: 'script', compact: true, comments: false,
+  babelrc: false, configFile: false, sourceType: 'script', compact: false, comments: false,
   presets: [[require.resolve('@babel/preset-env'), { targets, modules: false }]]
 }).code;
 acorn.parse(es5, { ecmaVersion: 5 }); // falla si queda algo moderno
@@ -99,6 +99,17 @@ const out = `<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Noto+Emoji&display=swap" rel="stylesheet">
 <style>
 ${css}</style>
+<script>
+/* Si algo falla en el Kobo, lo enseña en pantalla (el navegador del Kobo no tiene consola) */
+window.__kstep = 'cargando';
+window.onerror = function (msg, src, line, col) {
+  try {
+    var b = document.getElementById('kerr');
+    if (!b) { b = document.createElement('div'); b.id = 'kerr'; b.style.cssText = 'position:absolute;left:0;right:0;bottom:0;z-index:99;background:#fff;border-top:4px solid #000;padding:8px;font:16px monospace;white-space:pre-wrap;word-wrap:break-word;max-height:45%;overflow:auto'; (document.body || document.documentElement).appendChild(b); b.textContent = 'ERROR (haz una foto y envíasela a Claude):'; }
+    b.textContent += '\\n[' + window.__kstep + '] ' + msg + ' (línea ' + line + (col ? ':' + col : '') + ')';
+  } catch (e) {}
+};
+</script>
 </head>
 <body>
 ${body.trim()}
